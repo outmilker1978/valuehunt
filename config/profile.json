@@ -12,7 +12,10 @@
   "telegram_chat_id": "",
   "auto_respond_below_score": 6.9,
   "search_filters": {
-    "regions": ["Санкт-Петербург", "Москва"],
+    "regions": [
+      "Санкт-Петербург",
+      "Москва"
+    ],
     "titles": [
       "Руководитель проектов",
       "PM",
@@ -21,8 +24,14 @@
       "Delivery Manager",
       "Enterprise PM"
     ],
-    "professional_roles": [107, 73],
-    "industries": ["7.540", "7.539"],
+    "professional_roles": [
+      107,
+      73
+    ],
+    "industries": [
+      "7.540",
+      "7.539"
+    ],
     "keywords": [
       "Enterprise",
       "Senior",
@@ -41,5 +50,6 @@
       "name": "IT Product & Project Manager (Hybrid PM-PO)",
       "description": "Продуктовый PM/PO гибрид"
     }
-  }
+  },
+  "hh_access_token": ""
 }

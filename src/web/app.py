@@ -1,18 +1,24 @@
 import json
+import os
 import yaml
 from pathlib import Path
 
 import jinja2
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from pydantic import BaseModel
 
-from src.db import init_db, get_connection
+from src.db import init_db, get_connection, save_vacancy
+from src.scanner import HHScanner
+from src.scorer import VacancyScorer
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CONFIG_DIR = BASE_DIR / "config"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI(title="JobMatch", version="0.1.0")
 
@@ -44,6 +50,7 @@ class ProfileUpdate(BaseModel):
     salary_expectation: int | None = None
     hh_resume_id: str | None = None
     telegram_chat_id: str | None = None
+    hh_access_token: str | None = None
     auto_respond_below_score: float | None = None
     search_filters: dict | None = None
     resume_profiles: dict | None = None
@@ -171,6 +178,55 @@ def api_get_stats():
         "total": total,
         "by_status": by_status,
         "by_category": by_category,
+    }
+
+
+@app.post("/api/scan")
+def api_run_scan():
+    profile = load_profile()
+    token = profile.get("hh_access_token", "") or os.getenv("HH_ACCESS_TOKEN", "")
+    if not token:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "HH токен не указан. Вставь его на странице Профиль → Интеграции"},
+        )
+    scanner = HHScanner(access_token=token)
+    scorer = VacancyScorer()
+
+    params = scanner.build_search_params(profile)
+    items = scanner.search_vacancies(params)
+    total = len(items)
+    if total == 0:
+        return {"ok": True, "scanned": 0, "message": "Новых вакансий не найдено"}
+
+    conn = get_connection()
+    scanned = 0
+    for item in items:
+        details = scanner.get_vacancy_details(item["id"])
+        vacancy = {
+            "hh_id": details["id"],
+            "title": details.get("name"),
+            "company": details.get("employer", {}).get("name"),
+            "url": details.get("alternate_url"),
+            "salary_from": details.get("salary", {}).get("from"),
+            "salary_to": details.get("salary", {}).get("to"),
+            "description": details.get("description"),
+            "skills": [s["name"] for s in details.get("key_skills", [])],
+        }
+        score_result = scorer.calculate(vacancy)
+        vacancy["score"] = score_result["score"]
+        vacancy["category"] = score_result["category"]
+        save_vacancy(conn, vacancy)
+        scanned += 1
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "ok": True,
+        "scanned": scanned,
+        "total": total,
+        "message": f"Найдено {total} вакансий, обработано {scanned}",
     }
 
 

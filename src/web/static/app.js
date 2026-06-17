@@ -39,14 +39,23 @@ async function loadDashboard() {
 }
 
 async function runScan() {
-  const btn = document.querySelector('#scan-result');
-  btn.textContent = 'Сканирование...';
+  const el = document.querySelector('#scan-result');
+  el.textContent = 'Сканирование...';
+  el.style.color = '#666';
   try {
-    await api('/api/scan', { method: 'POST' });
-    showStatus(btn, 'Сканирование запущено');
-    setTimeout(loadDashboard, 2000);
+    const res = await api('/api/scan', { method: 'POST' });
+    if (res.ok) {
+      el.textContent = res.message || `Готово: ${res.scanned} вакансий`;
+      el.style.color = '#28a745';
+      setTimeout(loadDashboard, 1000);
+      setTimeout(loadVacancies, 1000);
+    } else {
+      el.textContent = res.error || 'Ошибка';
+      el.style.color = '#dc3545';
+    }
   } catch (e) {
-    showStatus(btn, 'Ошибка', false);
+    el.textContent = 'Ошибка соединения с сервером';
+    el.style.color = '#dc3545';
   }
 }
 
@@ -60,6 +69,7 @@ async function loadProfile() {
   setVal('field-location', profile.location);
   setVal('field-work_format', profile.work_format);
   setVal('field-salary', profile.salary_expectation);
+  setVal('field-hh_token', profile.hh_access_token);
   setVal('field-hh_resume_id', profile.hh_resume_id);
   setVal('field-telegram_chat_id', profile.telegram_chat_id);
 
@@ -101,6 +111,7 @@ async function saveIntegrations() {
   const res = await api('/api/profile', {
     method: 'POST',
     body: JSON.stringify({
+      hh_access_token: val('field-hh_token'),
       hh_resume_id: val('field-hh_resume_id'),
       telegram_chat_id: val('field-telegram_chat_id'),
     }),
