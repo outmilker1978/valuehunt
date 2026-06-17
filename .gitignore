@@ -36,3 +36,6 @@ test-results/
 # Logs
 *.log
 logs/
+
+# Temp test scripts
+test_*.py

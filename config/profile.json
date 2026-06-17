@@ -14,7 +14,8 @@
   "search_filters": {
     "regions": [
       "Санкт-Петербург",
-      "Москва"
+      "Москва",
+      "Россия"
     ],
     "titles": [
       "Руководитель проектов",
@@ -24,6 +25,16 @@
       "Delivery Manager",
       "Enterprise PM"
     ],
+    "keywords": [
+      "Менеджер проектов",
+      "Руководитель проектов",
+      "Enterprise",
+      "Senior",
+      "Head of Delivery",
+      "IT Project Manager",
+      "Product Owner",
+      "System Integration"
+    ],
     "professional_roles": [
       107,
       73
@@ -31,14 +42,6 @@
     "industries": [
       "7.540",
       "7.539"
-    ],
-    "keywords": [
-      "Enterprise",
-      "Senior",
-      "Head of Delivery",
-      "IT Project Manager",
-      "Product Owner",
-      "System Integration"
     ]
   },
   "resume_profiles": {

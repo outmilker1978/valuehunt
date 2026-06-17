@@ -184,8 +184,7 @@ def api_get_stats():
 @app.post("/api/scan")
 def api_run_scan():
     profile = load_profile()
-    token = profile.get("hh_access_token", "") or os.getenv("HH_ACCESS_TOKEN", "")
-    scanner = HHScanner(access_token=token or None)
+    scanner = HHScanner()
     scorer = VacancyScorer()
 
     params = scanner.build_search_params(profile)
@@ -197,16 +196,16 @@ def api_run_scan():
     conn = get_connection()
     scanned = 0
     for item in items:
-        details = scanner.get_vacancy_details(item["id"])
+        details = scanner.get_vacancy_details(item["url"])
         vacancy = {
-            "hh_id": details["id"],
-            "title": details.get("name"),
-            "company": details.get("employer", {}).get("name"),
-            "url": details.get("alternate_url"),
-            "salary_from": details.get("salary", {}).get("from"),
-            "salary_to": details.get("salary", {}).get("to"),
-            "description": details.get("description"),
-            "skills": [s["name"] for s in details.get("key_skills", [])],
+            "hh_id": item.get("hh_id"),
+            "title": details.get("title") or item.get("title"),
+            "company": details.get("company") or item.get("company"),
+            "url": item.get("url"),
+            "salary_from": item.get("salary_from"),
+            "salary_to": item.get("salary_to"),
+            "description": details.get("description", ""),
+            "skills": details.get("skills", []),
         }
         score_result = scorer.calculate(vacancy)
         vacancy["score"] = score_result["score"]
