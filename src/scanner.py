@@ -3,7 +3,7 @@ import requests
 from typing import Optional
 
 HH_API_BASE = "https://api.hh.ru"
-HH_USER_AGENT = "JobMatch/1.0 (brel.denis@gmail.com)"
+HH_USER_AGENT = "ValueHunt/1.0 (brel.denis@gmail.com)"
 
 
 class HHScanner:

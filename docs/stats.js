@@ -1,4 +1,4 @@
-// JobMatch Dashboard — статистика
+// ValueHunt Dashboard — статистика
 // Данные обновляются через GitHub Actions
 
 async function loadStats() {

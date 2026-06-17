@@ -20,7 +20,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 load_dotenv(BASE_DIR / ".env")
 
-app = FastAPI(title="JobMatch", version="0.1.0")
+app = FastAPI(title="ValueHunt", version="0.1.0")
 
 
 @app.get("/static/{path:path}")

@@ -1,4 +1,4 @@
-"""JobMatch Web UI — точка входа для локального запуска."""
+"""ValueHunt Web UI — точка входа для локального запуска."""
 import uvicorn
 from src.db import init_db
 from src.web.app import app

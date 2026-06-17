@@ -1,4 +1,4 @@
-// JobMatch Web UI — frontend logic
+// ValueHunt Web UI — frontend logic
 
 // ─── Helpers ──────────────────────────────────────────────────
 

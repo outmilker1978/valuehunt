@@ -1,4 +1,4 @@
-# JobMatch — Developer Documentation
+# ValueHunt — Developer Documentation
 
 ## Prerequisites
 

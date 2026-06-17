@@ -6,7 +6,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 logger = logging.getLogger(__name__)
 
 
-class JobMatchBot:
+class ValueHuntBot:
     def __init__(self, token: Optional[str] = None):
         self.token = token or TELEGRAM_TOKEN
 
@@ -24,5 +24,5 @@ class JobMatchBot:
         return self.send_message(chat_id, "\n".join(lines))
 
 
-def run_bot(token: str) -> JobMatchBot:
-    return JobMatchBot(token=token)
+def run_bot(token: str) -> ValueHuntBot:
+    return ValueHuntBot(token=token)
