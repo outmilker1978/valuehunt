@@ -69,6 +69,7 @@ class HHScanner:
             id_match = re.search(r"/vacancy/(\d+)", href)
             if id_match:
                 hh_id = id_match.group(1)
+                href = f"https://hh.ru/vacancy/{hh_id}"
 
             if not title or not hh_id:
                 return None

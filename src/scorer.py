@@ -83,9 +83,11 @@ class VacancyScorer:
         if not keywords:
             return 5.0
 
-        matches = sum(1 for kw in keywords if re.search(re.escape(kw), text))
-        ratio = matches / len(keywords)
-        return round(1 + ratio * 9, 1)
+        matches = sum(1 for kw in keywords if re.search(re.escape(kw), text, re.IGNORECASE))
+        if matches == 0:
+            return 5.0
+        boost = min(matches / 2.0, 1.0) * 5.0
+        return round(5.0 + boost, 1)
 
     @staticmethod
     def _rate_salary_fix(vacancy: dict) -> float:
@@ -117,8 +119,8 @@ class VacancyScorer:
                      "in-house", "собственная разработка"]
         negative = ["аутстафф", "outstaff", "outsource", "аутсорс", "аутсорсинг"]
 
-        pos_matches = sum(1 for kw in positive if re.search(re.escape(kw), text))
-        neg_matches = sum(1 for kw in negative if re.search(re.escape(kw), text))
+        pos_matches = sum(1 for kw in positive if re.search(re.escape(kw), text, re.IGNORECASE))
+        neg_matches = sum(1 for kw in negative if re.search(re.escape(kw), text, re.IGNORECASE))
 
         if neg_matches > 0:
             return 2.0
