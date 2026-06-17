@@ -1,0 +1,220 @@
+/* JobMatch Web UI — styles */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  line-height: 1.5;
+}
+
+/* Navigation */
+.nav {
+  background: #1a1a2e;
+  color: white;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 32px;
+}
+.nav-brand {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e94560;
+  text-decoration: none;
+}
+.nav-links { display: flex; gap: 20px; }
+.nav-links a {
+  color: #a0a0b8;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: white; }
+
+/* Main */
+.main {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+.main h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.card h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.stat-pre {
+  font-size: 13px;
+  color: #333;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 12px;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+}
+.input {
+  width: 100%;
+  max-width: 480px;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+.input:focus {
+  outline: none;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+select.input { max-width: 280px; }
+
+.btn {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #e94560;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover { background: #d63851; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.table th {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+}
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+.table tr:hover td { background: #fafafa; }
+.table tr:last-child td { border-bottom: none; }
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-A { background: #d4edda; color: #155724; }
+.badge-Б { background: #cce5ff; color: #004085; }
+.badge-В { background: #fff3cd; color: #856404; }
+.badge-мимо { background: #f8d7da; color: #721c24; }
+.badge-new { background: #e2e3e5; color: #383d41; }
+.badge-responded { background: #cce5ff; color: #004085; }
+
+/* Matrix builder */
+.matrix-group {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.matrix-group h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+.matrix-group h3 .weight-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 400;
+}
+.matrix-group h3 .weight-control input {
+  width: 60px;
+}
+.criterion-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+.criterion-row .criterion-name { flex: 1; }
+.criterion-row .criterion-weight {
+  width: 60px;
+  text-align: center;
+}
+.criterion-row .criterion-desc {
+  color: #888;
+  font-size: 12px;
+  flex: 1;
+}

@@ -41,7 +41,11 @@ personal-recruiter/
 │   ├── bot.py              # Telegram bot
 │   ├── browser_agent.py    # Playwright auto-respond (future)
 │   ├── db.py               # SQLite models
-│   └── reporter.py         # Weekly reports (future)
+│   ├── reporter.py         # Weekly reports (future)
+│   └── web/                # FastAPI Web UI
+│       ├── app.py          # API routes + page routes
+│       ├── templates/      # Jinja2 HTML pages
+│       └── static/         # CSS + JS
 ├── config/                 # Configuration
 │   ├── profile.json        # User profile + search filters
 │   └── matrix.yaml         # Scoring matrix (7 groups)
@@ -115,6 +119,36 @@ save_vacancy(conn, vacancy_data)
 
 Placeholder for python-telegram-bot integration.
 
+### web/ — Web UI (FastAPI)
+
+Browser-based interface for editing profile, matrix, and viewing vacancies.
+
+```bash
+# Start locally
+python -m src.web.app
+# Opens at http://127.0.0.1:8100
+```
+
+**Endpoints:**
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/profile` | GET/POST | Load/save profile.json |
+| `/api/matrix` | GET | Load matrix.yaml |
+| `/api/matrix/group-weight` | POST | Update group weight |
+| `/api/matrix/criterion-weight` | POST | Update criterion weight |
+| `/api/vacancies` | GET | List vacancies from DB |
+| `/api/stats` | GET | Aggregated statistics |
+| `/` | GET | Dashboard page |
+| `/profile` | GET | Profile editor |
+| `/matrix` | GET | Matrix editor |
+| `/vacancies` | GET | Vacancies table |
+
+**Pages:**
+- **Дашборд** — статистика, кнопка запуска сканирования
+- **Профиль** — редактирование профиля, фильтров, интеграций
+- **Матрица** — веса групп и критериев
+- **Вакансии** — таблица со Score, фильтр по категории
+
 ## Configuration
 
 ### profile.json
@@ -153,9 +187,10 @@ Workflow `.github/workflows/daily_scanner.yml` runs every 4 hours.
 - [x] Config: profile.json, matrix.yaml
 - [x] HH API scanner
 - [x] Keyword-based scorer
+- [x] SQLite schema + CRUD
+- [x] Web UI (FastAPI) — profile + matrix editor + dashboard
 - [ ] Telegram bot (/today, /stats)
 - [ ] GitHub Actions cron
-- [ ] SQLite persistence
 - [ ] Dashboard (GitHub Pages)
 
 ### v0.2

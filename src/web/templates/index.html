@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<h1>Дашборд</h1>
+
+<div class="stats-grid">
+  <div class="card">
+    <h3>Всего вакансий</h3>
+    <p class="stat-number" id="stat-total">—</p>
+  </div>
+  <div class="card">
+    <h3>По статусам</h3>
+    <pre id="stat-status" class="stat-pre"></pre>
+  </div>
+  <div class="card">
+    <h3>По категориям</h3>
+    <pre id="stat-category" class="stat-pre"></pre>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+  <h3>Быстрые действия</h3>
+  <p style="margin: 12px 0; color: #666;">Запусти сканирование HH и получи свежие вакансии.</p>
+  <button onclick="runScan()" class="btn">Запустить сканирование</button>
+  <span id="scan-result" style="margin-left: 12px;"></span>
+</div>
+{% endblock %}

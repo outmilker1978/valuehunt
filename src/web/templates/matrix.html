@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Матрица оценки{% endblock %}
+
+{% block content %}
+<h1>Матрица оценки вакансий</h1>
+<p style="color: #666; margin-bottom: 20px;">
+  Редактируй веса групп и критериев. Чем выше вес — тем важнее критерий.
+  Финальный Score = средневзвешенное по всем группам.
+</p>
+
+<div id="matrix-root"></div>
+{% endblock %}
