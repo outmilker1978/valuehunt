@@ -38,6 +38,15 @@ class HHScanner:
         return self._parse_detail(soup)
 
     def build_search_params(self, profile: dict) -> dict:
+        def _non_empty(val):
+            if val is None:
+                return False
+            if isinstance(val, str) and val.strip() == "":
+                return False
+            if isinstance(val, list) and not val:
+                return False
+            return True
+
         filters = profile.get("search_filters", {})
         text_parts = filters.get("titles", [])
         if not text_parts:
@@ -51,10 +60,13 @@ class HHScanner:
             ),
             "order_by": "publication_time",
             "per_page": "50",
-            "search_period": "7",
+            "search_period": filters.get("search_period", "7"),
+            "experience": filters.get("experience", ""),
+            "employment": filters.get("employment", ""),
+            "schedule": filters.get("schedule", ""),
+            "salary": filters.get("salary_from", ""),
         }
-        # Remove empty values
-        return {k: v for k, v in params.items() if v}
+        return {k: v for k, v in params.items() if _non_empty(v)}
 
     def _parse_card(self, card) -> dict | None:
         try:

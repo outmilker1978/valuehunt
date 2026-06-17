@@ -77,6 +77,12 @@ async function loadProfile() {
   setVal('field-regions', (filters.regions || []).join(', '));
   setVal('field-titles', (filters.titles || []).join(', '));
   setVal('field-keywords', (filters.keywords || []).join(', '));
+  setVal('field-prof-roles', (filters.professional_roles || [107, 73]).join(', '));
+  setVal('field-experience', filters.experience || '');
+  setVal('field-employment', filters.employment || '');
+  setVal('field-schedule', filters.schedule || '');
+  setVal('field-salary-from', filters.salary_from || '');
+  setVal('field-search-period', filters.search_period || '7');
 }
 
 async function saveProfile() {
@@ -97,12 +103,24 @@ async function saveFilters() {
   const regions = val('field-regions').split(',').map(s => s.trim()).filter(Boolean);
   const titles = val('field-titles').split(',').map(s => s.trim()).filter(Boolean);
   const keywords = val('field-keywords').split(',').map(s => s.trim()).filter(Boolean);
+  const rolesStr = val('field-prof-roles');
+  const professional_roles = rolesStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+  const search_filters = {
+    regions,
+    titles,
+    keywords,
+    professional_roles: professional_roles.length ? professional_roles : [107, 73],
+    experience: val('field-experience'),
+    employment: val('field-employment'),
+    schedule: val('field-schedule'),
+    salary_from: val('field-salary-from'),
+    search_period: val('field-search-period'),
+  };
 
   const res = await api('/api/profile', {
     method: 'POST',
-    body: JSON.stringify({
-      search_filters: { regions, titles, keywords, professional_roles: [107, 73], industries: ['7.540', '7.539'] },
-    }),
+    body: JSON.stringify({ search_filters }),
   });
   showStatus(document.getElementById('filters-status'), 'Фильтры сохранены');
 }

@@ -31,19 +31,82 @@
 </div>
 
 <div class="card" style="margin-top: 16px;">
-  <h3>Фильтры поиска</h3>
-  <p style="color: #666; margin-bottom: 12px;">Регионы (через запятую), должности, ключевые слова.</p>
-  <div class="form-group">
-    <label>Регионы</label>
-    <input id="field-regions" type="text" class="input" placeholder="Санкт-Петербург, Москва" />
+  <h3>Фильтры поиска HH.ru</h3>
+  <p style="color: #666; margin-bottom: 12px;">
+    Эти фильтры передаются напрямую в поиск HeadHunter. Оставляй поля пустыми — они не будут учтены.
+    <a href="https://hh.ru/search/vacancy" target="_blank" style="color: #4361ee;">Попробовать на сайте HH →</a>
+  </p>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Регионы</label>
+      <input id="field-regions" type="text" class="input" placeholder="Санкт-Петербург, Москва" />
+    </div>
+    <div class="form-group">
+      <label>Должности (через запятую)</label>
+      <input id="field-titles" type="text" class="input" placeholder="PM, Product Manager, PO" />
+    </div>
   </div>
-  <div class="form-group">
-    <label>Должности</label>
-    <input id="field-titles" type="text" class="input" placeholder="PM, Product Manager, PO" />
+  <div class="form-row">
+    <div class="form-group">
+      <label>Ключевые слова (не используются в поиске)</label>
+      <input id="field-keywords" type="text" class="input" placeholder="Enterprise, Senior, Head of Delivery" />
+      <span style="font-size: 12px; color: #999;">Только для скоринга, не влияет на результаты поиска</span>
+    </div>
+    <div class="form-group">
+      <label>Профессиональные роли (коды HH)</label>
+      <input id="field-prof-roles" type="text" class="input" placeholder="107, 73" />
+    </div>
   </div>
-  <div class="form-group">
-    <label>Ключевые слова</label>
-    <input id="field-keywords" type="text" class="input" placeholder="Enterprise, Senior, Head of Delivery" />
+  <div class="form-row">
+    <div class="form-group">
+      <label>Опыт работы</label>
+      <select id="field-experience" class="input">
+        <option value="">Любой</option>
+        <option value="noExperience">Без опыта</option>
+        <option value="between1And3">1–3 года</option>
+        <option value="between3And6">3–6 лет</option>
+        <option value="moreThan6">Более 6 лет</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Занятость</label>
+      <select id="field-employment" class="input">
+        <option value="">Любая</option>
+        <option value="full">Полная занятость</option>
+        <option value="part">Частичная занятость</option>
+        <option value="project">Проектная</option>
+        <option value="volunteer">Волонтёрство</option>
+        <option value="probation">Стажировка</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>График</label>
+      <select id="field-schedule" class="input">
+        <option value="">Любой</option>
+        <option value="fullDay">Полный день</option>
+        <option value="shift">Сменный</option>
+        <option value="flexible">Гибкий</option>
+        <option value="remote">Удалённая работа</option>
+        <option value="flyInFlyOut">Вахтовый метод</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Зарплата от (₽)</label>
+      <input id="field-salary-from" type="number" class="input" placeholder="250000" />
+    </div>
+    <div class="form-group">
+      <label>Период поиска (дней)</label>
+      <select id="field-search-period" class="input">
+        <option value="1">1 день</option>
+        <option value="3">3 дня</option>
+        <option value="7" selected>7 дней</option>
+        <option value="14">14 дней</option>
+        <option value="30">30 дней</option>
+        <option value="">Всё время</option>
+      </select>
+    </div>
   </div>
   <button onclick="saveFilters()" class="btn">Сохранить фильтры</button>
   <span id="filters-status" style="margin-left: 12px;"></span>

@@ -127,6 +127,8 @@ select.input { max-width: 280px; }
 }
 .btn:hover { background: #d63851; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.form-row .form-group { flex: 1; min-width: 180px; }
 .btn-sm {
   padding: 4px 12px;
   font-size: 12px;
