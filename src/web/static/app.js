@@ -138,16 +138,19 @@ function getCheckboxValues(containerId) {
 }
 
 async function saveProfile() {
+  const salary = parseInt(val('field-salary')) || 0;
   const body = {
     name: val('field-name'),
     location: val('field-location'),
     work_format: val('field-work_format'),
-    salary_expectation: parseInt(val('field-salary')) || 0,
+    salary_expectation: salary,
+    search_filters: { salary_from: salary },
   };
   const res = await api('/api/profile', {
     method: 'POST',
     body: JSON.stringify(body),
   });
+  setVal('field-salary-filter', salary);
   showStatus(document.getElementById('profile-status'), 'Сохранено');
 }
 
