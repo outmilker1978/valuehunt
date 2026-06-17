@@ -13,41 +13,28 @@
   "auto_respond_below_score": 6.9,
   "search_filters": {
     "regions": [
-      "Санкт-Петербург",
       "Москва",
-      "Россия"
+      "Санкт-Петербург"
     ],
     "titles": [
       "Руководитель проектов",
-      "PM",
-      "Product Manager",
-      "PO",
-      "Delivery Manager",
-      "Enterprise PM",
-      "Менеджер проектов"
-    ],
-    "keywords": [
-      "Менеджер проектов",
-      "Руководитель проектов",
-      "Enterprise",
-      "Senior",
-      "Head of Delivery",
-      "IT Project Manager",
-      "Product Owner",
-      "System Integration"
+      "PM"
     ],
     "professional_roles": [
       107,
       73
     ],
-    "industries": [
-      "7.540",
-      "7.539"
+    "experience": [
+      "between3And6",
+      "moreThan6"
     ],
-    "experience": "",
-    "employment": "",
-    "schedule": "",
-    "salary_from": "",
+    "employment": [
+      "full"
+    ],
+    "schedule": [
+      "remote"
+    ],
+    "salary_from": 250000,
     "search_period": "7"
   },
   "resume_profiles": {

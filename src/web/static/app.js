@@ -1,5 +1,30 @@
 // ValueHunt Web UI — frontend logic
 
+// ─── HH справочники ──────────────────────────────────────────
+
+const HH_PROF_ROLES = [
+  [107, 'Руководитель проектов (Project Manager)'],
+  [73, 'Менеджер продукта (Product Manager)'],
+  [150, 'Владелец продукта (Product Owner)'],
+  [151, 'Delivery Manager'],
+  [152, 'Program Manager'],
+  [156, 'Agile-коуч (Agile Coach)'],
+  [157, 'Scrum-мастер (Scrum Master)'],
+  [12, 'Директор по информационным технологиям (CIO)'],
+  [113, 'Технический директор (CTO)'],
+  [114, 'Руководитель группы разработки (EM)'],
+  [101, 'Руководитель отдела ИТ'],
+  [117, 'Руководитель отдела анализа'],
+  [118, 'Руководитель отдела разработки'],
+  [125, 'Бизнес-аналитик'],
+  [124, 'Системный аналитик'],
+  [160, 'Head of Product'],
+  [96, 'Руководитель отдела маркетинга'],
+  [112, 'Руководитель отдела поддержки'],
+  [158, 'Техлид (Tech Lead)'],
+  [13, 'Директор департамента ИТ'],
+];
+
 // ─── Helpers ──────────────────────────────────────────────────
 
 async function api(path, options = {}) {
@@ -69,6 +94,7 @@ async function loadProfile() {
   setVal('field-location', profile.location);
   setVal('field-work_format', profile.work_format);
   setVal('field-salary', profile.salary_expectation);
+  setVal('field-salary-filter', profile.salary_expectation);
   setVal('field-hh_token', profile.hh_access_token);
   setVal('field-hh_resume_id', profile.hh_resume_id);
   setVal('field-telegram_chat_id', profile.telegram_chat_id);
@@ -77,12 +103,38 @@ async function loadProfile() {
   setVal('field-regions', (filters.regions || []).join(', '));
   setVal('field-titles', (filters.titles || []).join(', '));
   setVal('field-keywords', (filters.keywords || []).join(', '));
-  setVal('field-prof-roles', (filters.professional_roles || [107, 73]).join(', '));
-  setVal('field-experience', filters.experience || '');
-  setVal('field-employment', filters.employment || '');
-  setVal('field-schedule', filters.schedule || '');
-  setVal('field-salary-from', filters.salary_from || '');
   setVal('field-search-period', filters.search_period || '7');
+
+  renderProfRoles(filters.professional_roles || [107, 73]);
+
+  setCheckboxGroup('field-experience', filters.experience || []);
+  setCheckboxGroup('field-employment', filters.employment || []);
+  setCheckboxGroup('field-schedule', filters.schedule || []);
+}
+
+function renderProfRoles(selected) {
+  const container = document.getElementById('field-prof-roles');
+  if (!container) return;
+  const sel = new Set(selected);
+  container.innerHTML = HH_PROF_ROLES.map(([code, name]) =>
+    `<label class="checkbox-label"><input type="checkbox" name="prof_role" value="${code}" ${sel.has(code) ? 'checked' : ''} /> ${name}</label>`
+  ).join('');
+}
+
+function setCheckboxGroup(containerId, values) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const valSet = new Set(Array.isArray(values) ? values : [values].filter(Boolean));
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = valSet.has(cb.value);
+  });
+}
+
+function getCheckboxValues(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(cb => cb.value);
 }
 
 async function saveProfile() {
@@ -103,18 +155,19 @@ async function saveFilters() {
   const regions = val('field-regions').split(',').map(s => s.trim()).filter(Boolean);
   const titles = val('field-titles').split(',').map(s => s.trim()).filter(Boolean);
   const keywords = val('field-keywords').split(',').map(s => s.trim()).filter(Boolean);
-  const rolesStr = val('field-prof-roles');
-  const professional_roles = rolesStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+  const profRoleCbs = document.querySelectorAll('#field-prof-roles input[type="checkbox"]:checked');
+  const professional_roles = Array.from(profRoleCbs).map(cb => parseInt(cb.value)).filter(n => !isNaN(n));
 
   const search_filters = {
     regions,
     titles,
     keywords,
     professional_roles: professional_roles.length ? professional_roles : [107, 73],
-    experience: val('field-experience'),
-    employment: val('field-employment'),
-    schedule: val('field-schedule'),
-    salary_from: val('field-salary-from'),
+    experience: getCheckboxValues('field-experience'),
+    employment: getCheckboxValues('field-employment'),
+    schedule: getCheckboxValues('field-schedule'),
+    salary_from: parseInt(val('field-salary')) || 0,
     search_period: val('field-search-period'),
   };
 

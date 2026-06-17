@@ -37,22 +37,27 @@ class HHScanner:
         soup = BeautifulSoup(response.text, "lxml")
         return self._parse_detail(soup)
 
-    def build_search_params(self, profile: dict) -> dict:
-        def _non_empty(val):
-            if val is None:
-                return False
-            if isinstance(val, str) and val.strip() == "":
-                return False
-            if isinstance(val, list) and not val:
-                return False
-            return True
+    def _flatten_param(self, val):
+        """Convert list or scalar to HH param format."""
+        if val is None:
+            return None
+        if isinstance(val, list):
+            if not val:
+                return None
+            return val  # requests will handle list as repeated param
+        s = str(val).strip()
+        return s if s else None
 
+    def build_search_params(self, profile: dict) -> dict:
         filters = profile.get("search_filters", {})
         text_parts = filters.get("titles", [])
         if not text_parts:
             text_parts = ["IT project manager", "product manager"]
         text = " OR ".join(text_parts[:5])
-        params = {
+
+        salary_from = filters.get("salary_from") or profile.get("salary_expectation")
+
+        param_spec = {
             "text": text,
             "area": self._resolve_areas(filters.get("regions", [])),
             "professional_role": ",".join(
@@ -61,12 +66,12 @@ class HHScanner:
             "order_by": "publication_time",
             "per_page": "50",
             "search_period": filters.get("search_period", "7"),
-            "experience": filters.get("experience", ""),
-            "employment": filters.get("employment", ""),
-            "schedule": filters.get("schedule", ""),
-            "salary": filters.get("salary_from", ""),
+            "experience": self._flatten_param(filters.get("experience")),
+            "employment": self._flatten_param(filters.get("employment")),
+            "schedule": self._flatten_param(filters.get("schedule")),
+            "salary": self._flatten_param(salary_from),
         }
-        return {k: v for k, v in params.items() if _non_empty(v)}
+        return {k: v for k, v in param_spec.items() if self._flatten_param(v) is not None}
 
     def _parse_card(self, card) -> dict | None:
         try:
