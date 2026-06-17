@@ -11,18 +11,33 @@ groups:
         name: "Роль PM/PO (гибрид)"
         weight: 10
         description: "Совмещение Project и Product Owner"
+        keywords: ["project manager", "product owner", "pm/po", "it project manager",
+                    "product manager", "project and product", "управление проектами",
+                    "управление продуктом", "продукт", "project management", "product management"]
+
       - id: enterprise_scale
         name: "Enterprise-масштаб"
         weight: 9
         description: "Крупные заказчики, сложные интеграции"
+        keywords: ["enterprise", "крупный", "сложная интеграция", "системная интеграция",
+                    "масштаб", "big data", "highload", "high load",
+                    "тысяч пользователей", "госзаказчик", "гос", "b2b", "b2g", "корпоративный"]
+
       - id: product_influence
         name: "Продуктовое влияние"
         weight: 9
         description: "Бэклог, roadmapping, дашборды метрик"
+        keywords: ["product roadmap", "roadmap", "бэклог", "backlog", "продуктовые метрики",
+                    "a/b test", "ab test", "product discovery", "product metrics",
+                    "data driven", "дашборд", "dashboard", "продуктовый подход", "nps", "retention"]
+
       - id: full_cycle
         name: "Полный цикл"
         weight: 8
         description: "От discovery до пост-поддержки"
+        keywords: ["full cycle", "полный цикл", "discovery", "post launch", "сопровождение",
+                    "жизненный цикл", "lifecycle", "от идеи", "до внедрения",
+                    "поддержка", "development", "delivery", "post-production"]
 
   - id: conditions
     name: "Условия работы"
@@ -32,18 +47,29 @@ groups:
         name: "Удалёнка 100%"
         weight: 10
         description: "Работа из любой точки"
+        keywords: ["удалённая работа", "удаленка", "remote", "100% удалённо", "удаленный формат",
+                    "work from home", "wfh", "work remotely", "из любой точки",
+                    "дистанционно", "удалённо"]
+
       - id: hybrid
         name: "Гибрид (офис по необходимости)"
         weight: 8
         description: "Разовые встречи/командировки"
+        keywords: ["гибрид", "hybrid", "частичная удалёнка", "смешанный график",
+                    "гибкий график", "удалённо/офис", "можно из дома", "гибридный формат"]
+
       - id: office_moscow
         name: "Офис Москва"
         weight: 4
         description: "Только если поездки раз в 2-4 недели"
+        keywords: ["москва", "moscow", "офис в москве", "мск"]
+
       - id: business_trips
         name: "Командировки"
         weight: 6
         description: "Готовность к поездкам"
+        keywords: ["командировки", "business trips", "поездки", "travel",
+                    "готовность к командировкам", "разъездной характер"]
 
   - id: finance
     name: "Финансы"
@@ -53,18 +79,28 @@ groups:
         name: "Фикс от 250k net"
         weight: 10
         description: "Минимальный порог"
+        keywords: []
+
       - id: salary_transparent
         name: "Вилка указана"
         weight: 7
         description: "Прозрачность компании"
+        keywords: ["зп", "зарплата", "salary", "доход", "compensation", "вилка",
+                    "от", "до", "оклад", "ставка"]
+
       - id: it_accreditation
         name: "IT-аккредитация"
         weight: 6
         description: "Налоговые льготы"
+        keywords: ["it аккредитация", "it accreditation", "аккредитованная компания",
+                    "it компания", "льготы", "аккредитация"]
+
       - id: dms
         name: "ДМС (стоматология)"
         weight: 5
         description: "Полис с первого дня"
+        keywords: ["дмс", "страхование", "medical insurance", "health insurance",
+                    "стоматология", "полис", "добровольное медицинское"]
 
   - id: company
     name: "Компания и репутация"
@@ -74,18 +110,26 @@ groups:
         name: "Рейтинг HH (Top-50/100)"
         weight: 8
         description: "Зрелость HR-функции"
+        keywords: []
+
       - id: dream_job
         name: "Dream Job / отзывы"
         weight: 7
         description: "Реальная культура"
+        keywords: ["лучший работодатель", "топ работодатель", "best employer",
+                    "dream job", "рейтинг", "отзывы сотрудников"]
+
       - id: company_age
         name: "Возраст компании (3+ лет)"
         weight: 6
         description: "Стабильность"
+        keywords: []
+
       - id: ceo_media
         name: "Медийность CEO/команды"
         weight: 7
         description: "Прозрачность"
+        keywords: []
 
   - id: career
     name: "Карьера и развитие"
@@ -95,18 +139,32 @@ groups:
         name: "Карьерная лестница"
         weight: 9
         description: "Грейды, понятный рост"
+        keywords: ["карьерный рост", "карьера", "грейд", "grade", "повышение",
+                    "professional growth", "career", "развитие", "promotion",
+                    "карьерная лестница", "должностной уровень", "senior", "lead"]
+
       - id: education
         name: "Обучение за счёт"
         weight: 8
         description: "Конференции, курсы, сертификации"
+        keywords: ["обучение", "training", "курсы", "courses", "конференции",
+                    "certification", "сертификация", "education", "повышение квалификации",
+                    "профессиональное развитие", "conference", "corporate training"]
+
       - id: mentoring
         name: "Менторство/наставничество"
         weight: 7
         description: "Культура развития"
+        keywords: ["ментор", "mentor", "наставник", "наставничество", "mentoring",
+                    "коучинг", "coaching", "buddy", "развитие сотрудников"]
+
       - id: growth_track
         name: "Трек до PPM/CPO"
         weight: 9
         description: "Долгосрочный путь"
+        keywords: ["lead", "head of", "director", "cpо", "ppm", "руководитель",
+                    "chief", "vp", "senior management", "leadership",
+                    "карьерный трек", "управленческий"]
 
   - id: tech
     name: "Технологический стек"
@@ -116,18 +174,37 @@ groups:
         name: "AI/ML-инструменты"
         weight: 8
         description: "Актуальность"
+        keywords: ["ai", "ml", "machine learning", "deep learning", "llm",
+                    "artificial intelligence", "нейросеть", "нейронные сети",
+                    "chatgpt", "gpt", "openai", "искусственный интеллект",
+                    "data science", "nlp", "computer vision"]
+
       - id: data_bi_dwh
         name: "Data / BI / DWH"
         weight: 8
         description: "Основная экспертиза"
+        keywords: ["bi", "dwh", "data warehouse", "power bi", "greenplum",
+                    "analytics", "аналитика", "дашборд", "etl", "kafka",
+                    "airflow", "data", "data platform", "дата", "отчётность",
+                    "data engineering", "olap", "clickhouse", "superset", "luxms"]
+
       - id: modern_stack
         name: "Современный стек"
         weight: 7
         description: "CI/CD, Docker, K8s, не legacy"
+        keywords: ["docker", "kubernetes", "k8s", "ci/cd", "gitlab ci",
+                    "devops", "cloud", "microservices", "микросервисы",
+                    "aws", "azure", "yandex cloud", "terraform", "ansible",
+                    "modern stack", "python", "fastapi"]
+
       - id: product_metrics
         name: "Продуктовые метрики"
         weight: 8
         description: "Data-driven культура"
+        keywords: ["a/b тест", "ab test", "продуктовые метрики", "nps", "retention",
+                    "churn", "adoption", "tta", "ttm", "data driven",
+                    "аналитика продукта", "продуктовая аналитика",
+                    "юнит-экономика", "unit economics", "ltv", "cac", "cohort"]
 
   - id: culture
     name: "Культура и процессы"
@@ -137,15 +214,29 @@ groups:
         name: "Зрелые Agile-процессы"
         weight: 9
         description: "Не хаос, не бюрократия"
+        keywords: ["agile", "scrum", "kanban", "agile процессы", "гибкие методологии",
+                    "sprint", "stand up", "retro", "retrospective",
+                    "jira", "confluence", "влегке", "agile transformation"]
+
       - id: hiring_transparency
         name: "Прозрачность в найме"
         weight: 8
         description: "Быстрая обратная связь"
+        keywords: ["прозрачность", "feedback", "обратная связь", "быстрый найм",
+                    "прозрачный", "честный", "открытость", "openness", "transparency"]
+
       - id: no_outstaff
         name: "Отсутствие аутстаффа"
         weight: 7
         description: "Прямой найм"
+        keywords: ["прямой найм", "direct hire", "в штат", "in-house",
+                    "собственная разработка", "продуктовая компания",
+                    "аутстафф", "outstaff"]  # negative match handled in scorer
+
       - id: social_package
         name: "Соцпакет"
         weight: 6
         description: "ДМС, спорт, питание"
+        keywords: ["соцпакет", "social package", "дмс", "med insurance",
+                    "спорт", "gym", "питание", "lunch", "meal",
+                    "% bunch", "корпоративный", "benefits", "бенефиты"]
