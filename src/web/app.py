@@ -1,15 +1,13 @@
 import json
 import yaml
 from pathlib import Path
-from typing import Optional
 
+import jinja2
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from pydantic import BaseModel
 
-from src.db import init_db, get_connection, get_vacancies_by_status
+from src.db import init_db, get_connection
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CONFIG_DIR = BASE_DIR / "config"
@@ -17,21 +15,38 @@ TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title="JobMatch", version="0.1.0")
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+@app.get("/static/{path:path}")
+def serve_static(path: str):
+    file_path = STATIC_DIR / path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(str(file_path))
+    return JSONResponse(status_code=404, content={"error": "not found"})
+
+jinja_env = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR)),
+    autoescape=True,
+)
+
+
+def render(template_name: str, **context) -> str:
+    tmpl = jinja_env.get_template(template_name)
+    return tmpl.render(**context)
 
 
 # ─── Pydantic models ──────────────────────────────────────────
 
 class ProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    location: Optional[str] = None
-    work_format: Optional[str] = None
-    salary_expectation: Optional[int] = None
-    hh_resume_id: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
-    auto_respond_below_score: Optional[float] = None
-    search_filters: Optional[dict] = None
-    resume_profiles: Optional[dict] = None
+    name: str | None = None
+    location: str | None = None
+    work_format: str | None = None
+    salary_expectation: int | None = None
+    hh_resume_id: str | None = None
+    telegram_chat_id: str | None = None
+    auto_respond_below_score: float | None = None
+    search_filters: dict | None = None
+    resume_profiles: dict | None = None
 
 
 class MatrixGroupWeight(BaseModel):
@@ -116,7 +131,7 @@ def api_update_group_weight(data: MatrixGroupWeight):
             g["weight"] = data.weight
             save_matrix(matrix)
             return {"ok": True}
-    return {"ok": False, "error": "group not found"}, 404
+    return JSONResponse(status_code=404, content={"ok": False, "error": "group not found"})
 
 
 @app.post("/api/matrix/criterion-weight")
@@ -129,11 +144,11 @@ def api_update_criterion_weight(data: MatrixCriterionWeight):
                     c["weight"] = data.weight
                     save_matrix(matrix)
                     return {"ok": True}
-    return {"ok": False, "error": "criterion not found"}, 404
+    return JSONResponse(status_code=404, content={"ok": False, "error": "criterion not found"})
 
 
 @app.get("/api/vacancies")
-def api_get_vacancies(status: Optional[str] = None):
+def api_get_vacancies(status: str | None = None):
     vacancies = get_vacancies_from_db()
     if status:
         vacancies = [v for v in vacancies if v.get("status") == status]
@@ -162,23 +177,23 @@ def api_get_stats():
 # ─── Page Routes ──────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-def index_page(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def index_page():
+    return render("index.html")
 
 
 @app.get("/profile", response_class=HTMLResponse)
-def profile_page(request: Request):
-    return templates.TemplateResponse("profile.html", {"request": request})
+def profile_page():
+    return render("profile.html")
 
 
 @app.get("/matrix", response_class=HTMLResponse)
-def matrix_page(request: Request):
-    return templates.TemplateResponse("matrix.html", {"request": request})
+def matrix_page():
+    return render("matrix.html")
 
 
 @app.get("/vacancies", response_class=HTMLResponse)
-def vacancies_page(request: Request):
-    return templates.TemplateResponse("vacancies.html", {"request": request})
+def vacancies_page():
+    return render("vacancies.html")
 
 
 # ─── Main ─────────────────────────────────────────────────────
