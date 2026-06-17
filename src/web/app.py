@@ -185,12 +185,7 @@ def api_get_stats():
 def api_run_scan():
     profile = load_profile()
     token = profile.get("hh_access_token", "") or os.getenv("HH_ACCESS_TOKEN", "")
-    if not token:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "error": "HH токен не указан. Вставь его на странице Профиль → Интеграции"},
-        )
-    scanner = HHScanner(access_token=token)
+    scanner = HHScanner(access_token=token or None)
     scorer = VacancyScorer()
 
     params = scanner.build_search_params(profile)
