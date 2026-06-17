@@ -1,0 +1,151 @@
+# Матрица оценки вакансий
+# Formula: Score_группы = Σ(оценка_подкритерия × вес_подкритерия) / Σ(весов_подкритериев)
+# Финальный_Score = Σ(Score_группы × вес_группы) / Σ(весов_групп)
+
+groups:
+  - id: role
+    name: "Роль и содержание работы"
+    weight: 10
+    criteria:
+      - id: pm_po_hybrid
+        name: "Роль PM/PO (гибрид)"
+        weight: 10
+        description: "Совмещение Project и Product Owner"
+      - id: enterprise_scale
+        name: "Enterprise-масштаб"
+        weight: 9
+        description: "Крупные заказчики, сложные интеграции"
+      - id: product_influence
+        name: "Продуктовое влияние"
+        weight: 9
+        description: "Бэклог, roadmapping, дашборды метрик"
+      - id: full_cycle
+        name: "Полный цикл"
+        weight: 8
+        description: "От discovery до пост-поддержки"
+
+  - id: conditions
+    name: "Условия работы"
+    weight: 10
+    criteria:
+      - id: remote_100
+        name: "Удалёнка 100%"
+        weight: 10
+        description: "Работа из любой точки"
+      - id: hybrid
+        name: "Гибрид (офис по необходимости)"
+        weight: 8
+        description: "Разовые встречи/командировки"
+      - id: office_moscow
+        name: "Офис Москва"
+        weight: 4
+        description: "Только если поездки раз в 2-4 недели"
+      - id: business_trips
+        name: "Командировки"
+        weight: 6
+        description: "Готовность к поездкам"
+
+  - id: finance
+    name: "Финансы"
+    weight: 9
+    criteria:
+      - id: salary_fix
+        name: "Фикс от 250k net"
+        weight: 10
+        description: "Минимальный порог"
+      - id: salary_transparent
+        name: "Вилка указана"
+        weight: 7
+        description: "Прозрачность компании"
+      - id: it_accreditation
+        name: "IT-аккредитация"
+        weight: 6
+        description: "Налоговые льготы"
+      - id: dms
+        name: "ДМС (стоматология)"
+        weight: 5
+        description: "Полис с первого дня"
+
+  - id: company
+    name: "Компания и репутация"
+    weight: 8
+    criteria:
+      - id: hh_rating
+        name: "Рейтинг HH (Top-50/100)"
+        weight: 8
+        description: "Зрелость HR-функции"
+      - id: dream_job
+        name: "Dream Job / отзывы"
+        weight: 7
+        description: "Реальная культура"
+      - id: company_age
+        name: "Возраст компании (3+ лет)"
+        weight: 6
+        description: "Стабильность"
+      - id: ceo_media
+        name: "Медийность CEO/команды"
+        weight: 7
+        description: "Прозрачность"
+
+  - id: career
+    name: "Карьера и развитие"
+    weight: 8
+    criteria:
+      - id: career_ladder
+        name: "Карьерная лестница"
+        weight: 9
+        description: "Грейды, понятный рост"
+      - id: education
+        name: "Обучение за счёт"
+        weight: 8
+        description: "Конференции, курсы, сертификации"
+      - id: mentoring
+        name: "Менторство/наставничество"
+        weight: 7
+        description: "Культура развития"
+      - id: growth_track
+        name: "Трек до PPM/CPO"
+        weight: 9
+        description: "Долгосрочный путь"
+
+  - id: tech
+    name: "Технологический стек"
+    weight: 7
+    criteria:
+      - id: ai_ml
+        name: "AI/ML-инструменты"
+        weight: 8
+        description: "Актуальность"
+      - id: data_bi_dwh
+        name: "Data / BI / DWH"
+        weight: 8
+        description: "Основная экспертиза"
+      - id: modern_stack
+        name: "Современный стек"
+        weight: 7
+        description: "CI/CD, Docker, K8s, не legacy"
+      - id: product_metrics
+        name: "Продуктовые метрики"
+        weight: 8
+        description: "Data-driven культура"
+
+  - id: culture
+    name: "Культура и процессы"
+    weight: 7
+    criteria:
+      - id: agile_maturity
+        name: "Зрелые Agile-процессы"
+        weight: 9
+        description: "Не хаос, не бюрократия"
+      - id: hiring_transparency
+        name: "Прозрачность в найме"
+        weight: 8
+        description: "Быстрая обратная связь"
+      - id: no_outstaff
+        name: "Отсутствие аутстаффа"
+        weight: 7
+        description: "Прямой найм"
+      - id: social_package
+        name: "Соцпакет"
+        weight: 6
+        description: "ДМС, спорт, питание"

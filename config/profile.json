@@ -1,0 +1,45 @@
+{
+  "name": "Брель Денис Анатольевич",
+  "nickname": "outmilker",
+  "brand": "outmilk",
+  "role": "IT Product & Project Manager (Hybrid PM-PO)",
+  "location": "Санкт-Петербург / Ставропольский край",
+  "work_format": "remote",
+  "salary_expectation": 250000,
+  "salary_currency": "RUB",
+  "salary_type": "net",
+  "hh_resume_id": "",
+  "telegram_chat_id": "",
+  "auto_respond_below_score": 6.9,
+  "search_filters": {
+    "regions": ["Санкт-Петербург", "Москва"],
+    "titles": [
+      "Руководитель проектов",
+      "PM",
+      "Product Manager",
+      "PO",
+      "Delivery Manager",
+      "Enterprise PM"
+    ],
+    "professional_roles": [107, 73],
+    "industries": ["7.540", "7.539"],
+    "keywords": [
+      "Enterprise",
+      "Senior",
+      "Head of Delivery",
+      "IT Project Manager",
+      "Product Owner",
+      "System Integration"
+    ]
+  },
+  "resume_profiles": {
+    "01": {
+      "name": "IT Project Manager (Enterprise)",
+      "description": "Enterprise PM, системная интеграция, B2B/B2G"
+    },
+    "03": {
+      "name": "IT Product & Project Manager (Hybrid PM-PO)",
+      "description": "Продуктовый PM/PO гибрид"
+    }
+  }
+}

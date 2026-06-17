@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Data (local database, cookies, sessions)
+data/*.db
+data/*.sqlite
+data/sessions/
+
+# Config with secrets
+config/.env
+config/profile.local.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Playwright
+playwright-report/
+test-results/
+
+# Logs
+*.log
+logs/
