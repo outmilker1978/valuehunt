@@ -130,12 +130,26 @@ class HHScanner:
             title = t_tag.get_text(strip=True)
 
         company = ""
+        hh_employer_id = None
         c_tag = soup.find(
             "span",
             attrs={"data-qa": "vacancy-company-name"},
         )
         if c_tag:
             company = c_tag.get_text(strip=True)
+            parent_a = c_tag.find_parent("a")
+            if parent_a:
+                href = parent_a.get("href", "")
+                m = re.search(r"/employer/(\d+)", href)
+                if m:
+                    hh_employer_id = m.group(1)
+        if not hh_employer_id:
+            employer_link = soup.find("a", attrs={"data-qa": "vacancy-employer-profile"})
+            if employer_link:
+                href = employer_link.get("href", "")
+                m = re.search(r"/employer/(\d+)", href)
+                if m:
+                    hh_employer_id = m.group(1)
 
         desc = ""
         d_tag = soup.find(
@@ -169,6 +183,7 @@ class HHScanner:
         return {
             "title": title,
             "company": company,
+            "hh_employer_id": hh_employer_id,
             "description": desc,
             "skills": skills,
         }
@@ -199,7 +214,7 @@ class HHScanner:
         return ",".join(codes) if codes else ""
 
 
-def run_scan(profile: dict) -> list[dict]:
+def run_scan(profile: dict, with_ues: bool = True) -> list[dict]:
     scanner = HHScanner()
     params = scanner.build_search_params(profile)
     items = scanner.search_vacancies(params)
@@ -208,5 +223,42 @@ def run_scan(profile: dict) -> list[dict]:
         if item.get("url"):
             details = scanner.get_vacancy_details(item["url"])
             item.update(details)
+            if with_ues:
+                _enrich_with_ues(item, profile)
             results.append(item)
     return results
+
+
+def _enrich_with_ues(vacancy: dict, profile: dict):
+    from src.ues import UESCalculator
+    from src.collector import analyze_vacancy_llm
+    analysis = analyze_vacancy_llm(vacancy)
+    vacancy.update(analysis)
+
+    # Detect work_format and location from text
+    text = " ".join([
+        vacancy.get("title", ""),
+        vacancy.get("description", ""),
+    ]).lower()
+    if any(kw in text for kw in ["remote", "удалён", "wfh", "дистанционно"]):
+        vacancy["work_format"] = "remote"
+    elif any(kw in text for kw in ["hybrid", "гибрид", "смешан"]):
+        vacancy["work_format"] = "hybrid"
+    else:
+        vacancy["work_format"] = "office"
+    for city in ["москв", "санкт-петербург", "msk", "spb"]:
+        if city in text:
+            vacancy["location"] = {"москв": "Москва", "санкт-петербург": "Санкт-Петербург",
+                                    "msk": "Москва", "spb": "Санкт-Петербург"}.get(city, city)
+            break
+    # UES evaluation
+    ues = UESCalculator()
+    result = ues.evaluate(vacancy)
+    vacancy["score"] = result["score"]
+    vacancy["category"] = result["category"]
+    vacancy["gate_a_result"] = result["gate_a"]
+    vacancy["gate_b_result"] = result["gate_b"]
+    vacancy["override_applied"] = result["override_applied"]
+    vacancy["risks"] = result["risks"]
+    vacancy["recommendation"] = result["recommendation"]
+    vacancy["groups"] = result["groups"]

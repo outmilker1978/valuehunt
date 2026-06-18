@@ -7,22 +7,20 @@
 <div class="stats-grid">
   <div class="card">
     <h3>Всего вакансий</h3>
-    <p class="stat-number" id="stat-total">—</p>
+    <div class="stat-number" id="stat-total">—</div>
   </div>
   <div class="card">
     <h3>По статусам</h3>
-    <pre id="stat-status" class="stat-pre"></pre>
+    <pre class="stat-pre" id="stat-status">—</pre>
   </div>
   <div class="card">
     <h3>По категориям</h3>
-    <pre id="stat-category" class="stat-pre"></pre>
+    <pre class="stat-pre" id="stat-category">—</pre>
   </div>
 </div>
 
-<div class="card" style="margin-top: 20px;">
-  <h3>Быстрые действия</h3>
-  <p style="margin: 12px 0; color: #666;">Запусти сканирование HH и получи свежие вакансии.</p>
+<div style="display:flex;gap:8px;margin-top:16px;align-items:center;">
   <button onclick="runScan()" class="btn">Запустить сканирование</button>
-  <span id="scan-result" style="margin-left: 12px;"></span>
+  <span id="scan-result" style="font-size: 14px;"></span>
 </div>
 {% endblock %}

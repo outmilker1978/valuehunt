@@ -5,7 +5,7 @@
   "role": "IT Product & Project Manager (Hybrid PM-PO)",
   "location": "Санкт-Петербург / Ставропольский край",
   "work_format": "remote",
-  "salary_expectation": 0,
+  "salary_expectation": 250000,
   "salary_currency": "RUB",
   "salary_type": "net",
   "hh_resume_id": "",
@@ -14,15 +14,24 @@
   "search_filters": {
     "regions": [
       "Москва",
-      "Санкт-Петербург"
+      "Санкт-Петербург",
+      "Россия"
     ],
     "titles": [
       "Руководитель проектов",
-      "PM"
+      "Руководитель продуктов",
+      "PM",
+      "PO",
+      "Менеджер проектов",
+      "Project manager",
+      "Product manager"
     ],
+    "keywords": [],
     "professional_roles": [
       107,
-      73
+      73,
+      150,
+      151
     ],
     "experience": [
       "between3And6",
@@ -32,6 +41,7 @@
       "full"
     ],
     "schedule": [
+      "fullDay",
       "remote"
     ],
     "salary_from": 250000,

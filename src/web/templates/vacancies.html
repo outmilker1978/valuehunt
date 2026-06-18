@@ -4,14 +4,15 @@
 {% block content %}
 <h1>Вакансии</h1>
 
-<div style="margin-bottom: 16px;">
+<div style="margin-bottom: 16px;display:flex;gap:12px;align-items:center;">
   <label>Фильтр по категории: </label>
   <select id="category-filter" onchange="filterVacancies()" class="input" style="width: auto;">
     <option value="">Все</option>
-    <option value="A">A (идеал)</option>
-    <option value="Б">Б (сильное)</option>
-    <option value="В">В (компромисс)</option>
-    <option value="мимо">мимо</option>
+    <option value="S">S (идеал)</option>
+    <option value="A">A (сильное)</option>
+    <option value="B">B (можно)</option>
+    <option value="C">C (слабое)</option>
+    <option value="REJECT">REJECT</option>
   </select>
 </div>
 

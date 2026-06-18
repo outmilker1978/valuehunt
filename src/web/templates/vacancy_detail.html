@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Детали вакансии{% endblock %}
+
+{% block content %}
+<h1>Детальный анализ</h1>
+
+<div id="vacancy-detail-root">
+  <p style="color:#999;">Загрузка...</p>
+</div>
+
+<script>
+async function loadDetail() {
+  const root = document.getElementById('vacancy-detail-root');
+  const v = await api('/api/vacancies/{{ vacancy_id }}');
+  if (!v || !v.hh_id) { root.innerHTML = '<p style="color:#d32f2f;">Вакансия не найдена</p>'; return; }
+
+  const catColors = { S: '#155724', A: '#004085', B: '#856404', C: '#856404', REJECT: '#721c24' };
+  const catBgs = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#fff3cd', REJECT: '#f8d7da' };
+
+  let gateHtml = '';
+  if (v.gate_a_result) {
+    const ga = typeof v.gate_a_result === 'string' ? JSON.parse(v.gate_a_result) : v.gate_a_result;
+    if (ga.details) {
+      gateHtml = Object.entries(ga.details).map(([k, val]) =>
+        `<span class="badge badge-${val === 'pass' ? 'A' : 'мимо'}">${k}: ${val}</span>`
+      ).join(' ') + (ga.reasons ? `<p style="color:#d32f2f;font-size:13px;margin-top:6px;">${ga.reasons.join('; ')}</p>` : '');
+    }
+  }
+
+  let risksHtml = '';
+  if (v.risks) {
+    const risks = typeof v.risks === 'string' ? JSON.parse(v.risks) : v.risks;
+    risksHtml = risks.map(r => `<p style="margin:4px 0;font-size:13px;">${r.level || '•'} ${r.text}</p>`).join('');
+  }
+
+  root.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <h2 style="margin:0 0 4px;">${v.title || '—'}</h2>
+          <p style="color:#666;margin:0;">
+            <a href="${v.url || '#'}" target="_blank">${v.company || '—'}</a>
+            ${v.location ? '· ' + v.location : ''}
+            ${v.work_format ? '· ' + v.work_format : ''}
+          </p>
+          ${v.salary_from ? `<p style="margin:4px 0 0;font-weight:600;">${v.salary_from.toLocaleString()}${v.salary_to ? ' — ' + v.salary_to.toLocaleString() : ''} ₽</p>` : '<p style="color:#999;">ЗП не указана</p>'}
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:40px;font-weight:700;color:${catColors[v.category] || '#333'};">${v.score || '?'}</div>
+          <span class="badge" style="background:${catBgs[v.category] || '#e2e3e5'};color:${catColors[v.category] || '#383d41'};font-size:16px;">${v.category || '—'}</span>
+          ${v.override_applied ? '<div style="font-size:11px;color:#e94560;margin-top:4px;">Override</div>' : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>GATE</h3>
+      ${gateHtml || '<p style="color:#999;">—</p>'}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Риски</h3>
+      ${risksHtml || '<p style="color:#999;">Нет данных</p>'}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Анализ вакансии</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <h4 style="font-size:13px;color:#666;">Задачи</h4>
+          ${(v.parsed_tasks ? (typeof v.parsed_tasks === 'string' ? JSON.parse(v.parsed_tasks) : v.parsed_tasks) : []).map(t => `<li style="font-size:13px;">${t}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
+        </div>
+        <div>
+          <h4 style="font-size:13px;color:#666;">Требования</h4>
+          ${(v.parsed_requirements ? (typeof v.parsed_requirements === 'string' ? JSON.parse(v.parsed_requirements) : v.parsed_requirements) : []).map(r => `<li style="font-size:13px;">${r}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
+        </div>
+      </div>
+      ${v.key_words ? `
+        <div style="margin-top:12px;">
+          <h4 style="font-size:13px;color:#666;">Ключевые слова для письма</h4>
+          <p style="font-size:13px;">${(typeof v.key_words === 'string' ? JSON.parse(v.key_words) : v.key_words).join(', ')}</p>
+        </div>
+      ` : ''}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Описание</h3>
+      <div style="font-size:13px;max-height:400px;overflow-y:auto;white-space:pre-wrap;">${v.description || '—'}</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Действия</h3>
+      <div style="display:flex;gap:8px;">
+        <a href="${v.url || '#'}" target="_blank" class="btn btn-sm">Открыть на HH</a>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'applied')">Откликнулся</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'rejected')">Отказ</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'archived')">В архив</button>
+      </div>
+      <span id="detail-status" style="margin-left:8px;font-size:13px;"></span>
+    </div>
+  `;
+}
+
+async function updateStatus(id, status) {
+  await api('/api/vacancies/' + id + '/status', {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  });
+  showStatus(document.getElementById('detail-status'), 'Статус обновлён');
+}
+
+loadDetail();
+</script>
+{% endblock %}

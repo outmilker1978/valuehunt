@@ -254,16 +254,20 @@ async function loadVacancies() {
     return;
   }
 
-  tbody.innerHTML = items.map(v => `
-    <tr class="vacancy-row" data-category="${v.category || ''}">
-      <td><a href="${v.url || '#'}" target="_blank">${v.title || '—'}</a></td>
+  const catMap = { S: 'A', A: 'Б', B: 'В', C: 'C', REJECT: 'мимо' };
+  tbody.innerHTML = items.map(v => {
+    const cat = v.category || 'REJECT';
+    const badgeCat = catMap[cat] || 'мимо';
+    return `
+    <tr class="vacancy-row" data-category="${cat}">
+      <td><a href="/vacancies/${v.id}" style="font-weight:${cat === 'S' || cat === 'A' ? '600' : 'normal'};">${v.title || '—'}</a></td>
       <td>${v.company || '—'}</td>
-      <td><strong>${v.score || '?'}</strong></td>
-      <td><span class="badge badge-${(v.category || 'мимо').replace('мимо', 'мимо')}">${v.category || 'мимо'}</span></td>
+      <td><strong>${v.score != null ? v.score.toFixed(2) : '?'}</strong></td>
+      <td><span class="badge badge-${badgeCat}">${cat}</span></td>
       <td><span class="badge badge-${v.status || 'new'}">${v.status || 'new'}</span></td>
       <td>${v.created_at ? v.created_at.slice(0, 10) : '—'}</td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function filterVacancies() {
