@@ -129,29 +129,47 @@ class HHScanner:
         if t_tag:
             title = t_tag.get_text(strip=True)
 
-        company = ""
         hh_employer_id = None
-        c_tag = soup.find(
-            "span",
-            attrs={"data-qa": "vacancy-company-name"},
-        )
-        if c_tag:
-            company = c_tag.get_text(strip=True)
-            parent_a = c_tag.find_parent("a")
-            if parent_a:
-                href = parent_a.get("href", "")
+        # Try multiple selectors for company name + employer ID
+        for selector, attr in [
+            ("span[data-qa='vacancy-company-name']", "href"),
+            ("a[data-qa='vacancy-company-name']", "href"),
+            ("div[data-qa='vacancy-company'] a", "href"),
+            ("a.company-link", "href"),
+        ]:
+            tag = soup.select_one(selector)
+            if tag:
+                href = tag.get(attr or "href", "")
                 m = re.search(r"/employer/(\d+)", href)
                 if m:
                     hh_employer_id = m.group(1)
+                    break
         if not hh_employer_id:
-            employer_link = soup.find("a", attrs={"data-qa": "vacancy-employer-profile"})
-            if employer_link:
-                href = employer_link.get("href", "")
-                m = re.search(r"/employer/(\d+)", href)
-                if m:
-                    hh_employer_id = m.group(1)
+            for a in soup.find_all("a", href=True):
+                if "/employer/" in a["href"]:
+                    m = re.search(r"/employer/(\d+)", a["href"])
+                    if m:
+                        hh_employer_id = m.group(1)
+                        break
+        if not hh_employer_id:
+            # Try script tag with employer data
+            for script in soup.find_all("script", type="application/ld+json"):
+                try:
+                    data = json.loads(script.string)
+                    if isinstance(data, dict):
+                        for key in ["hiringOrganization", "employer"]:
+                            val = data.get(key, {})
+                            if isinstance(val, dict):
+                                eid = val.get("identifier", val.get("@id", ""))
+                                if eid:
+                                    hh_employer_id = str(eid)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        # Don't override company from card (card has the name)
+        company = None
 
         desc = ""
+
         d_tag = soup.find(
             "div",
             attrs={"data-qa": "vacancy-description"},
@@ -180,13 +198,15 @@ class HHScanner:
                 for tag in skill_section.find_all("li"):
                     skills.append(tag.get_text(strip=True))
 
-        return {
+        result = {
             "title": title,
-            "company": company,
             "hh_employer_id": hh_employer_id,
             "description": desc,
             "skills": skills,
         }
+        if company:
+            result["company"] = company
+        return result
 
     @staticmethod
     def _parse_salary(text: str | None) -> tuple:

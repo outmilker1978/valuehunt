@@ -232,8 +232,11 @@ def api_run_scan():
         if company_name:
             existing = get_company_by_name(conn, company_name)
             if not existing and item.get("hh_employer_id"):
-                from src.collector import collect_company_from_hh
-                company_data = collect_company_from_hh(item["hh_employer_id"])
+                from src.collector import collect_all_company_data
+                company_data = collect_all_company_data(
+                    company_name,
+                    hh_employer_id=item.get("hh_employer_id"),
+                )
                 company_data["name"] = company_name
                 save_company(conn, company_data)
 
