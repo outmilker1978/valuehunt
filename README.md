@@ -86,7 +86,7 @@ valuehunt/
 
 The dashboard auto-deploys daily to GitHub Pages:
 
-👉 **https://outmilker1978.github.io/valuehunt/output/index.html**
+👉 **https://outmilker1978.github.io/valuehunt/**
 
 Trigger a manual rebuild from **Actions → Generate Dashboard → Run workflow**.
 
