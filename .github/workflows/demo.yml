@@ -32,7 +32,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate dashboard
-        run: python src/report.py
+        run: python -m src.report
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

@@ -1,5 +1,12 @@
 import json
+import sys
 from pathlib import Path
+
+# Ensure project root is on path
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 from src.models import init_db, DB_PATH
 from data.demo_data import generate as generate_demo
 from src.analytics import (
