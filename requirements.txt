@@ -1,0 +1,5 @@
+# Core
+# (no external dependencies — uses only Python stdlib)
+
+# Chart.js is loaded via CDN in the HTML dashboard
+# SQLite is built into Python's standard library

@@ -1,0 +1,27 @@
+# ValueHunt .gitignore
+
+# Database
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output (generated)
+# output/ is committed for GitHub Pages, but index.html is regenerated
