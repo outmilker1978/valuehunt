@@ -20,6 +20,8 @@ Track your IT job applications, measure funnel conversion, score vacancies with 
 
 ## 📊 Dashboard Preview
 
+![ValueHunt Dashboard](docs/dashboard-preview.png)
+
 *Dashboard showing funnel, conversion rates, timeline, score distribution, and top companies — generated as a static HTML page with Chart.js charts.*
 
 ## 🚀 Quick Start
