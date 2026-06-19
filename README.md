@@ -28,7 +28,7 @@ Track your IT job applications, measure funnel conversion, score vacancies with 
 
 ```bash
 # 1. Clone
-git clone https://github.com/outmilker/valuehunt.git
+git clone https://github.com/outmilker1978/valuehunt.git
 cd valuehunt
 
 # 2. Run (pure Python — no pip install needed!)
@@ -86,7 +86,7 @@ valuehunt/
 
 The dashboard auto-deploys daily to GitHub Pages:
 
-👉 **https://outmilker.github.io/valuehunt/**
+👉 **https://outmilker1978.github.io/valuehunt/output/index.html**
 
 Trigger a manual rebuild from **Actions → Generate Dashboard → Run workflow**.
 
