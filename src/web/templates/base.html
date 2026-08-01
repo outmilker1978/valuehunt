@@ -4,23 +4,172 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ValueHunt — {% block title %}Дашборд{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <nav class="nav">
     <div class="nav-inner">
-      <a href="/" class="nav-brand">ValueHunt</a>
-      <div class="nav-links">
-        <a href="/">Дашборд</a>
-        <a href="/profile">Профиль</a>
-        <a href="/matrix">Матрица</a>
-        <a href="/vacancies">Вакансии</a>
+      <a href="/" class="nav-brand"><svg width="24" height="24" viewBox="0 0 32 32" style="vertical-align:middle;margin-right:6px;"><circle cx="16" cy="16" r="15" fill="#DE2800"/><text x="16" y="22" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-weight="900" font-size="16" letter-spacing="-0.3">vh</text></svg>ValueHunt</a>
+      <div class="nav-links" id="nav-links">
+        <a href="/" class="nav-link">Дашборд</a>
+        <a href="/profile" class="nav-link">Профиль</a>
+        <a href="/contacts" class="nav-link">Контакты</a>
+        <a href="/matrix" class="nav-link">Матрица</a>
+        <a href="/vacancies" class="nav-link">Вакансии</a>
+        <a href="/report" class="nav-link">Отчёт</a>
+        <a href="/backup" class="nav-link">⚡ Backup</a>
       </div>
+      <script>(function(){
+        var path = location.pathname.replace(/\/+$/, '');
+        document.querySelectorAll('#nav-links .nav-link').forEach(function(a){
+          var href = a.getAttribute('href').replace(/\/+$/, '');
+          if (href === path || (path.startsWith(href) && href !== '')) {
+            a.classList.add('nav-link-active');
+          }
+        });
+      })();</script>
     </div>
   </nav>
   <main class="main">
     {% block content %}{% endblock %}
   </main>
   <script src="/static/app.js"></script>
+
+<div id="manual-vacancy-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:flex-start;padding:60px 20px;overflow-y:auto;" onclick="if(event.target===this)closeManualForm()">
+  <div style="background:white;border-radius:12px;padding:24px;max-width:500px;width:100%;position:relative;box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+    <button onclick="closeManualForm()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#888;line-height:1;">&times;</button>
+    <h2 style="margin-bottom:16px;font-size:18px;">Новая вакансия</h2>
+    <form onsubmit="saveManualVacancy();return false">
+      <div class="form-group">
+        <label>Название *</label>
+        <input id="mv-title" class="input" required placeholder="Project Manager">
+      </div>
+      <div class="form-group">
+        <label>Компания *</label>
+        <input id="mv-company" class="input" required placeholder="Название компании" oninput="mvCompanyInput(this)">
+        <datalist id="mv-company-list"></datalist>
+      </div>
+      <div class="form-group">
+        <label>Ссылка (HH или другой сайт)</label>
+        <input id="mv-url" class="input" placeholder="https://hh.ru/vacancy/... или любой URL">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Зарплата от</label>
+          <input id="mv-salary-from" class="input" type="number" placeholder="250000">
+        </div>
+        <div class="form-group">
+          <label>Зарплата до</label>
+          <input id="mv-salary-to" class="input" type="number" placeholder="350000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Формат работы</label>
+          <select id="mv-work-format" class="input">
+            <option value="">—</option>
+            <option value="remote">Удалёнка</option>
+            <option value="hybrid">Гибрид</option>
+            <option value="office">Офис</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Локация</label>
+          <input id="mv-location" class="input" placeholder="Москва / СПб / ...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="mv-description" class="input" style="max-width:100%;min-height:80px;" placeholder="Обязанности, требования, условия..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button type="submit" class="btn">Создать</button>
+        <button type="button" class="btn btn-sm" onclick="closeManualForm()" style="background:#6c757d;">Отмена</button>
+        <span id="mv-status" style="font-size:13px;color:#888;margin-left:8px;"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let _mvCallback = null;
+
+async function showManualForm(companyName, callback) {
+  document.getElementById('manual-vacancy-modal').style.display = 'flex';
+  document.getElementById('mv-status').textContent = '';
+  _mvCallback = callback || null;
+  if (companyName) {
+    document.getElementById('mv-company').value = companyName;
+  }
+  try {
+    const data = await api('/api/companies/list');
+    if (data.items) {
+      document.getElementById('mv-company-list').innerHTML = data.items.map(c =>
+        '<option value="' + c.name.replace(/"/g, '&quot;') + '">'
+      ).join('');
+    }
+  } catch(e) {}
+}
+
+function mvCompanyInput(input) {
+  const opts = document.querySelectorAll('#mv-company-list option');
+  const val = input.value.toLowerCase();
+  opts.forEach(o => o.style.display = o.value.toLowerCase().includes(val) ? '' : 'none');
+}
+
+async function saveManualVacancy() {
+  const title = document.getElementById('mv-title').value.trim();
+  const company = document.getElementById('mv-company').value.trim();
+  if (!title || !company) {
+    document.getElementById('mv-status').textContent = 'Заполните название и компанию';
+    document.getElementById('mv-status').style.color = '#dc3545';
+    return;
+  }
+  const st = document.getElementById('mv-status');
+  st.textContent = 'Создание...';
+  st.style.color = '#888';
+  try {
+    const res = await api('/api/vacancies/manual', {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        company,
+        url: document.getElementById('mv-url').value.trim() || null,
+        salary_from: parseFloat(document.getElementById('mv-salary-from').value) || null,
+        salary_to: parseFloat(document.getElementById('mv-salary-to').value) || null,
+        work_format: document.getElementById('mv-work-format').value || null,
+        location: document.getElementById('mv-location').value.trim() || null,
+        description: document.getElementById('mv-description').value.trim() || null,
+      }),
+    });
+    if (res.ok) {
+      st.textContent = 'Создана!';
+      st.style.color = '#28a745';
+      // Clear form
+      document.getElementById('mv-title').value = '';
+      document.getElementById('mv-company').value = '';
+      document.getElementById('mv-url').value = '';
+      document.getElementById('mv-salary-from').value = '';
+      document.getElementById('mv-salary-to').value = '';
+      document.getElementById('mv-work-format').value = '';
+      document.getElementById('mv-location').value = '';
+      document.getElementById('mv-description').value = '';
+      closeManualForm();
+      if (typeof _mvCallback === 'function') _mvCallback();
+    } else {
+      st.textContent = 'Ошибка: ' + (res.error || 'неизвестная');
+      st.style.color = '#dc3545';
+    }
+  } catch(e) {
+    st.textContent = 'Ошибка: ' + e.message;
+    st.style.color = '#dc3545';
+  }
+}
+
+function closeManualForm() {
+  document.getElementById('manual-vacancy-modal').style.display = 'none';
+}
+</script>
 </body>
 </html>

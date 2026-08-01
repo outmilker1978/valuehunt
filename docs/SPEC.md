@@ -16,26 +16,35 @@ _Содержание перенесено из README.md._
 ## 2. Архитектура
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                   Desktop App (Tauri)                       │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ Анкета      │  │ Дашборд     │  │ CRM / Трекер     │  │
-│  │ (матрица)   │  │ статистика  │  │ контакты, статусы │  │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬──────────┘  │
-└─────────┼────────────────┼────────────────────┼─────────────┘
-          │                │                    │
-┌─────────┼────────────────┼────────────────────┼─────────────┐
-│         │     GitHub Actions (основной раннер) │             │
-│  ┌──────┴──────┐  ┌──────┴───────┐  ┌────────┴──────────┐  │
-│  │ HH API      │  │ Playwright  │  │ SQLite            │  │
-│  │ парсер      │  │ автовеб     │  │ БД               │  │
-│  └──────┬──────┘  └─────────────┘  └───────────────────┘  │
-│         │                                                  │
-│  ┌──────┴──────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ LLM-агент   │  │ Git LFS     │  │ Telegram Bot     │  │
-│  │ (DeepSeek)  │  │ (БД в репе) │  │ уведомления      │  │
-│  └─────────────┘  └─────────────┘  └───────────────────┘  │
-└────────────────────────────────────────────────────────────┘
+                       ┌─────────────────┐
+                       │   HH.ru (сайт)  │
+                       └────────┬────────┘
+                                │ requests + BeautifulSoup
+                       ┌────────▼────────┐
+                       │   scanner.py    │  ← поиск + детали вакансий
+                       └────────┬────────┘
+                                │
+                       ┌────────▼────────┐
+                       │     ues.py      │  ← UES Calculator (Gates + Score)
+                       │  gate_check.py  │  ← Gate A/B thin wrapper
+                       └────────┬────────┘
+                                │
+                       ┌────────▼────────┐
+                       │     db.py       │  ← SQLite (vacancies, companies,
+                       │                 │     profiles, contacts, interactions)
+                       └────────┬────────┘
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+  ┌───────▼───────┐   ┌────────▼────────┐   ┌────────▼────────┐
+  │  collector.py │   │  web/app.py     │   │  bot.py (загл.) │
+  │  (данные о    │   │  FastAPI Web UI │   │  Telegram bot   │
+  │  компаниях)   │   └────────┬────────┘   └─────────────────┘
+  └───────────────┘            │
+                     ┌─────────┴──────────┐
+                     │  templates/        │
+                     │  static/           │
+                     └────────────────────┘
 ```
 
 ---
@@ -218,24 +227,29 @@ Score_группы = Σ(оценка_подкритерия × вес_подкр
 
 ---
 
-## 6. Структура БД (SQLite) — MVP
+## 6. Структура БД (SQLite) — текущая (v1.13.0)
 
 ```sql
-CREATE TABLE profile (
+-- Профили (мульти-профили)
+CREATE TABLE profiles (
     id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
     hh_resume_id TEXT,
-    telegram_chat_id TEXT,
-    auto_respond_below_score REAL DEFAULT 6.9,
-    created_at TEXT
+    resume_name TEXT,
+    resume_data TEXT,
+    search_filters TEXT,
+    matrix_data TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE matrix (
-    id INTEGER PRIMARY KEY,
-    groups_json TEXT,
-    version INTEGER,
-    updated_at TEXT
+-- Связь вакансия ↔ профиль (many-to-many)
+CREATE TABLE vacancy_profiles (
+    vacancy_id INTEGER NOT NULL REFERENCES vacancies(id) ON DELETE CASCADE,
+    profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    PRIMARY KEY (vacancy_id, profile_id)
 );
 
+-- Вакансии
 CREATE TABLE vacancies (
     id INTEGER PRIMARY KEY,
     hh_id TEXT UNIQUE,
@@ -244,53 +258,91 @@ CREATE TABLE vacancies (
     url TEXT,
     salary_from INTEGER,
     salary_to INTEGER,
+    salary_currency TEXT DEFAULT 'RUB',
     description TEXT,
     skills_json TEXT,
+    work_format TEXT,
+    location TEXT,
+    experience TEXT,
+    published_at TEXT,
+    hr_contacts TEXT,
+    parsed_tasks TEXT,
+    parsed_requirements TEXT,
+    key_words TEXT,
     score REAL,
     category TEXT,
+    gate_a_result TEXT,
+    gate_b_result TEXT,
+    override_applied INTEGER DEFAULT 0,
+    risks TEXT,
+    cover_letter TEXT,
+    resume_archetype TEXT,
     llm_analysis TEXT,
-    status TEXT DEFAULT 'new',
-    created_at TEXT,
+    llm_generated INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'new' CHECK(status IN ('new','applied','follow_up','call','in_progress','offer','rejected','archived','closed')),
+    created_at TEXT DEFAULT (datetime('now')),
     responded_at TEXT,
     archived_at TEXT
 );
 
+-- Компании
+CREATE TABLE companies (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    hh_employer_id TEXT,
+    website TEXT,
+    hh_rating REAL,
+    hh_recommend_pct INTEGER,
+    hh_reviews_count INTEGER,
+    culture_tags TEXT,
+    stack_tags TEXT,
+    overall_score REAL,
+    data_confidence TEXT DEFAULT 'not_found',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Контакты (HR)
 CREATE TABLE contacts (
     id INTEGER PRIMARY KEY,
-    vacancy_id INTEGER,
-    name TEXT,
+    company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
     role TEXT,
-    phone TEXT,
+    source TEXT NOT NULL DEFAULT 'other' CHECK(source IN ('HH','Telegram','LinkedIn','recommendation','VK','email','other')),
+    priority TEXT DEFAULT 'B' CHECK(priority IN ('S','A','B','C')),
     telegram TEXT,
+    email TEXT,
+    phone TEXT,
+    vk TEXT,
     linkedin TEXT,
     notes TEXT,
-    FOREIGN KEY (vacancy_id) REFERENCES vacancies(id)
+    created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE communications (
+-- Взаимодействия
+CREATE TABLE interactions (
+    id INTEGER PRIMARY KEY,
+    contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+    vacancy_id INTEGER REFERENCES vacancies(id) ON DELETE SET NULL,
+    type TEXT NOT NULL CHECK(type IN ('outreach','follow_up','call','interview','test_task','offer','rejection','other')),
+    direction TEXT NOT NULL CHECK(direction IN ('outbound','inbound')),
+    summary TEXT,
+    outcome TEXT CHECK(outcome IN ('pending','positive','negative')),
+    next_action_date TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Логи решений
+CREATE TABLE logs (
     id INTEGER PRIMARY KEY,
     vacancy_id INTEGER,
-    contact_id INTEGER,
-    type TEXT,
-    direction TEXT,
-    content TEXT,
-    reminder_date TEXT,
-    created_at TEXT,
-    FOREIGN KEY (vacancy_id) REFERENCES vacancies(id),
-    FOREIGN KEY (contact_id) REFERENCES contacts(id)
-);
-
-CREATE TABLE analytics (
-    id INTEGER PRIMARY KEY,
-    date TEXT,
-    new_vacancies INTEGER,
-    auto_responses INTEGER,
-    manual_responses INTEGER,
-    invitations INTEGER,
-    interviews INTEGER,
-    offers INTEGER,
-    rejections INTEGER,
-    recommendations TEXT
+    score REAL,
+    category TEXT,
+    decision TEXT,
+    cover_letter TEXT,
+    resume_used TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (vacancy_id) REFERENCES vacancies(id)
 );
 ```
 
@@ -354,25 +406,43 @@ CREATE TABLE analytics (
 
 ---
 
-## 9. Файловая структура репозитория (MVP)
+## 9. Файловая структура репозитория (текущая)
 
 ```
-personal-recruiter/
+ValueHunt/
 ├── .github/workflows/daily_scanner.yml
+├── scripts/
+│   └── import_contacts.py       # Импорт contacts.md → SQLite
 ├── src/
-│   ├── scanner.py           # HH API парсер
-│   ├── scorer.py            # Матрица оценки
-│   ├── llm_agent.py         # LLM-анализ
-│   ├── bot.py               # Telegram-бот
-│   ├── browser_agent.py     # Playwright-отклик
-│   ├── db.py                # SQLite модели
-│   ├── reporter.py          # Еженедельный отчёт
-│   └── web/                 # FastAPI Web UI
-├── config/profile.json
-├── config/matrix.yaml
+│   ├── scanner.py               # HH.ru парсер (BeautifulSoup)
+│   ├── ues.py                   # UES Calculator (Gates + Score)
+│   ├── gate_check.py            # VacancyGateCheck (Gate A/B thin)
+│   ├── scorer.py                # VacancyScorer (legacy, deprecated)
+│   ├── collector.py             # Данные о компаниях
+│   ├── llm_agent.py             # LLM-анализ (заглушка)
+│   ├── bot.py                   # Telegram-бот (заглушка)
+│   ├── browser_agent.py         # Playwright-отклик (заглушка)
+│   ├── reporter.py              # Еженедельный отчёт (заглушка)
+│   ├── db.py                    # SQLite — схемы + CRUD
+│   └── web/
+│       ├── app.py               # FastAPI — routes, API, pages
+│       ├── templates/           # Jinja2: index, profile, vacancies, contacts, ...
+│       └── static/              # style.css, app.js
+├── config/
+│   ├── profile.json             # Legacy-профиль
+│   ├── matrix.yaml              # Матрица скоринга (7 групп)
+│   └── ues_config.json          # Настройки UES
 ├── data/
-├── docs/                    # Дашборд + документация
+│   └── valuehunt.db             # SQLite (gitignored)
+├── docs/
+│   ├── USER.md                  # Пользовательская инструкция
+│   ├── DEV.md                   # Документация разработчика
+│   ├── ADMIN.md                 # Администрирование
+│   ├── SPEC.md                  # Техническое задание
+│   └── TEST.md                  # Тест-кейсы
+├── CHANGELOG.md
 ├── requirements.txt
+├── .gitignore
 └── README.md
 ```
 

@@ -2,128 +2,754 @@
 {% block title %}Профиль{% endblock %}
 
 {% block content %}
-<h1>Профиль пользователя</h1>
+<h1>Профили поиска</h1>
 
-<div class="card">
-  <h3>Основное</h3>
-  <div class="form-group">
-    <label>Имя</label>
-    <input id="field-name" type="text" class="input" />
-  </div>
-  <div class="form-group">
-    <label>Локация</label>
-    <input id="field-location" type="text" class="input" />
-  </div>
-  <div class="form-group">
-    <label>Формат работы</label>
-    <select id="field-work_format" class="input">
-      <option value="remote">Удалёнка</option>
-      <option value="hybrid">Гибрид</option>
-      <option value="office">Офис</option>
+<div class="sticky-filter" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <label>Текущий профиль:</label>
+    <select id="profile-selector" class="input" style="min-width:220px;" onchange="switchProfile(this.value)">
+      <option value="">— Нет профилей —</option>
     </select>
+    <button onclick="createProfile()" class="btn btn-sm">+ Новый</button>
+    <button onclick="deleteCurrentProfile()" class="btn btn-sm" style="background:#dc3545;color:#fff;">Удалить</button>
   </div>
-  <div class="form-group">
-    <label>Ожидаемая ЗП (net, ₽)</label>
-    <input id="field-salary" type="number" class="input" />
-  </div>
-  <button onclick="saveProfile()" class="btn">Сохранить</button>
-  <span id="profile-status" style="margin-left: 12px;"></span>
-</div>
 
-<div class="card" style="margin-top: 16px;">
-  <h3>Фильтры поиска HH.ru</h3>
-  <p style="color: #666; margin-bottom: 12px;">
-    Эти фильтры передаются напрямую в поиск HeadHunter. Можно выбрать несколько значений в каждой группе.
-    <a href="https://hh.ru/search/vacancy" target="_blank" style="color: #4361ee;">Попробовать на сайте HH →</a>
-  </p>
+<div id="profile-editor" style="display:none;">
 
-  <div class="form-row">
-    <div class="form-group">
-      <label>Регионы</label>
-      <input id="field-regions" type="text" class="input" placeholder="Санкт-Петербург, Москва" />
-    </div>
-    <div class="form-group">
-      <label>Должности (через запятую)</label>
-      <input id="field-titles" type="text" class="input" placeholder="PM, Product Manager, PO" />
+  <!-- ====== Загрузить резюме ====== -->
+  <div class="card" style="margin-top:16px;">
+    <h3>Загрузить резюме с HH</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">
+      Экспортируй резюме с HH.ru (скачай как .html) — загрузи сюда. Поля ниже заполнятся автоматически.
+    </p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="file" id="resume-file-input" accept=".html,.htm" style="font-size:13px;" />
+      <button onclick="uploadResume()" class="btn btn-sm">Загрузить и распарсить</button>
+      <span id="upload-status" style="font-size:12px;"></span>
     </div>
   </div>
 
-  <div class="form-group">
-    <label>Профессиональные роли</label>
-    <div id="field-prof-roles" class="checkbox-grid"></div>
-  </div>
+  <!-- ====== Моё резюме (из загруженного файла) ====== -->
+  <div class="card" style="margin-top:16px;background:#f8f9fa;border-left:4px solid #4361ee;">
+    <h2 style="font-size:16px;margin:0 0 4px 0;color:#4361ee;">Моё резюме</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:12px;">
+      Данные из загруженного файла. Редактируется только название профиля.
+      Всё остальное меняй на HH.ru и перезагрузи файл.
+    </p>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label>Опыт работы</label>
-      <div id="field-experience" class="checkbox-group">
-        <label class="checkbox-label"><input type="checkbox" name="exp" value="noExperience" /> Без опыта</label>
-        <label class="checkbox-label"><input type="checkbox" name="exp" value="between1And3" /> 1–3 года</label>
-        <label class="checkbox-label"><input type="checkbox" name="exp" value="between3And6" /> 3–6 лет</label>
-        <label class="checkbox-label"><input type="checkbox" name="exp" value="moreThan6" /> Более 6 лет</label>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Название профиля</label>
+        <input id="pe-name" type="text" class="input" placeholder="01 — Enterprise PM" />
+      </div>
+      <div class="form-group">
+        <label>Архетип отклика</label>
+        <div style="display:flex;gap:12px;margin-top:4px;">
+          <label class="checkbox-label"><input type="radio" name="archetype" value="01" checked /> 01 — Enterprise PM</label>
+          <label class="checkbox-label"><input type="radio" name="archetype" value="03" /> 03 — Product PM-PO</label>
+        </div>
       </div>
     </div>
-    <div class="form-group">
-      <label>Занятость</label>
-      <div id="field-employment" class="checkbox-group">
-        <label class="checkbox-label"><input type="checkbox" name="emp" value="full" /> Полная занятость</label>
-        <label class="checkbox-label"><input type="checkbox" name="emp" value="part" /> Частичная занятость</label>
-        <label class="checkbox-label"><input type="checkbox" name="emp" value="project" /> Проектная / Временная</label>
-        <label class="checkbox-label"><input type="checkbox" name="emp" value="volunteer" /> Волонтёрство</label>
-        <label class="checkbox-label"><input type="checkbox" name="emp" value="probation" /> Стажировка</label>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Должность</label>
+        <input id="pe-titles" type="text" class="input" readonly style="background:#eee;" />
       </div>
     </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Город</label>
+        <input id="pe-location" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+      <div class="form-group">
+        <label>Ожидаемая ЗП (net, ₽)</label>
+        <input id="pe-salary" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Опыт работы</label>
+        <input id="pe-experience" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+      <div class="form-group">
+        <label>Тип занятости</label>
+        <input id="pe-employment" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Формат работы</label>
+        <input id="pe-work_formats" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+      <div class="form-group">
+        <label>Занятость / График</label>
+        <input id="pe-schedule" type="text" class="input" readonly style="background:#eee;" />
+      </div>
+    </div>
+
     <div class="form-group">
-      <label>График</label>
-      <div id="field-schedule" class="checkbox-group">
-        <label class="checkbox-label"><input type="checkbox" name="sch" value="fullDay" /> Полный день</label>
-        <label class="checkbox-label"><input type="checkbox" name="sch" value="shift" /> Сменный график</label>
-        <label class="checkbox-label"><input type="checkbox" name="sch" value="flexible" /> Гибкий график</label>
-        <label class="checkbox-label"><input type="checkbox" name="sch" value="remote" /> Удалённая работа</label>
-        <label class="checkbox-label"><input type="checkbox" name="sch" value="flyInFlyOut" /> Вахтовый метод</label>
+      <label>Профессиональные роли</label>
+      <div id="pe-prof-roles" style="font-size:13px;color:#333;"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Ключевые навыки (из резюме)</label>
+      <div style="font-size:11px;color:#888;margin-bottom:4px;">Используются для оценки вакансий (Gate B). Редактируй как хочешь.</div>
+      <div id="pe-keywords" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;"></div>
+      <div style="display:flex;gap:6px;">
+        <input id="kw-input" type="text" class="input" placeholder="Добавить навык" style="flex:1;font-size:13px;" />
+        <button onclick="addKeyword()" class="btn btn-sm">+</button>
       </div>
     </div>
   </div>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label>Зарплата от (₽) — из основных настроек</label>
-      <input id="field-salary-filter" type="number" class="input" placeholder="250000" readonly />
-      <span style="font-size: 12px; color: #999;">Берётся из раздела «Основное». Изменить там.</span>
+  <!-- ====== Поиск вакансий ====== -->
+  <div class="card" style="margin-top:16px;">
+    <h2 style="font-size:16px;margin:0 0 4px 0;">Поиск вакансий для этого профиля</h2>
+
+    <!-- Шаг 1: URL-обмен с HH -->
+    <div style="background:#f0f4ff;padding:12px;border-radius:8px;margin:8px 0 16px 0;">
+      <div style="font-size:12px;color:#4361ee;margin-bottom:8px;font-weight:600;">
+        Шаг 1. Настрой фильтр
+      </div>
+      <div class="form-group">
+        <label>Текст поиска (как на HH: фразы в кавычках через OR)</label>
+        <textarea id="flt-text" class="input" rows="3" placeholder='"Руководитель портфеля" OR "Delivery Manager" OR "Senior PM"' style="resize:vertical;font-size:13px;font-family:monospace;"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Регион (код HH)</label>
+          <input id="flt-regions" type="text" class="input" placeholder="113 — Вся РФ, 1 — Москва, 2 — СПб, пусто — твой регион" />
+          <div style="font-size:11px;color:#888;margin-top:2px;">113 = вся РФ, 1 = Москва, 2 = СПб, 1139 = Краснодар, можно несколько через запятую</div>
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>Отрасль компании (коды HH)</label>
+          <input id="flt-industry" type="text" class="input" placeholder="7.540, 7.539 — коды через запятую" />
+          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
+            <span onclick="toggleIndustry('7.540')" class="badge" style="cursor:pointer;background:#e2e3e5;font-size:11px;">Разработка ПО</span>
+            <span onclick="toggleIndustry('7.539')" class="badge" style="cursor:pointer;background:#e2e3e5;font-size:11px;">Системная интеграция</span>
+            <span onclick="toggleIndustry('7.541')" class="badge" style="cursor:pointer;background:#e2e3e5;font-size:11px;">Интернет-компания</span>
+            <span onclick="toggleIndustry('7.542')" class="badge" style="cursor:pointer;background:#e2e3e5;font-size:11px;">Телеком</span>
+            <span onclick="document.getElementById('flt-industry').value=''" class="badge" style="cursor:pointer;background:#dc3545;color:#fff;font-size:11px;">✕ Очистить</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Где искать</label>
+        <div id="flt-search_field" class="checkbox-group" style="display:flex;gap:12px;">
+          <label class="checkbox-label"><input type="checkbox" name="fsf" value="name" checked /> Название вакансии</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsf" value="description" checked /> Описание вакансии</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsf" value="company_name" /> Название компании</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <button onclick="importHHFilter()" class="btn btn-sm">⬇ Импорт из URL</button>
+        <button onclick="openHHExport()" class="btn btn-sm">➡ Открыть на HH.ru</button>
+        <button onclick="clearFilters()" class="btn btn-sm" style="background:#6c757d;color:#fff;">✕ Очистить</button>
+        <span id="hh-url-status" style="font-size:12px;color:#666;align-self:center;"></span>
+      </div>
+      <div id="hh-url-result" style="display:none;margin-top:6px;font-size:12px;">
+        <div id="hh-url-link" style="word-break:break-all;"></div>
+        <button onclick="copyHHUrl()" style="margin-top:4px;font-size:12px;">📋 Копировать URL</button>
+      </div>
     </div>
+
+    <!-- Шаг 2: Детальные фильтры -->
+    <div style="font-size:12px;color:#666;margin-bottom:8px;font-weight:600;">
+      Шаг 2. Уточни параметры
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Зарплата от (₽)</label>
+        <input id="flt-salary" type="number" class="input" />
+      </div>
+      <div class="form-group">
+        <label>Глубина поиска по дате публикации вакансий</label>
+        <select id="flt-period" class="input">
+          <option value="1">1 день</option>
+          <option value="3">3 дня</option>
+          <option value="7" selected>7 дней</option>
+          <option value="14">14 дней</option>
+          <option value="30">30 дней</option>
+          <option value="">Всё время</option>
+        </select>
+      </div>
+      <div class="form-group" style="max-width:140px;">
+        <label>ЗП режим</label>
+        <select id="flt-salary_mode" class="input">
+          <option value="MONTH">В месяц</option>
+          <option value="YEAR">В год</option>
+          <option value="DAY">В день</option>
+          <option value="HOUR">В час</option>
+          <option value="FIX">Фикс</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Опыт работы</label>
+        <div id="flt-experience" class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="fex" value="noExperience" /> Без опыта</label>
+          <label class="checkbox-label"><input type="checkbox" name="fex" value="between1And3" /> 1–3 года</label>
+          <label class="checkbox-label"><input type="checkbox" name="fex" value="between3And6" /> 3–6 лет</label>
+          <label class="checkbox-label"><input type="checkbox" name="fex" value="moreThan6" /> Более 6 лет</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Тип занятости</label>
+        <div id="flt-employment" class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="fem" value="FULL" /> Полная занятость</label>
+          <label class="checkbox-label"><input type="checkbox" name="fem" value="PART" /> Частичная / Подработка</label>
+          <label class="checkbox-label"><input type="checkbox" name="fem" value="PROJECT" /> Проектная / ГПХ</label>
+          <label class="checkbox-label"><input type="checkbox" name="fem" value="VOLUNTEER" /> Волонтёрство</label>
+          <label class="checkbox-label"><input type="checkbox" name="fem" value="PROBATION" /> Стажировка</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>График работы</label>
+        <div id="flt-schedule" class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="fsch" value="fullDay" /> Полный день</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsch" value="shift" /> Сменный</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsch" value="flexible" /> Гибкий</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsch" value="remote" /> Удалённая работа</label>
+          <label class="checkbox-label"><input type="checkbox" name="fsch" value="flyInFlyOut" /> Вахта</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Формат работы</label>
+        <div id="flt-work_formats" class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="fwf" value="REMOTE" /> Удалённо</label>
+          <label class="checkbox-label"><input type="checkbox" name="fwf" value="HYBRID" /> Гибрид</label>
+          <label class="checkbox-label"><input type="checkbox" name="fwf" value="OFFICE" /> На месте работодателя</label>
+          <label class="checkbox-label"><input type="checkbox" name="fwf" value="TRAVEL" /> Разъездной</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Образование</label>
+        <select id="flt-education" class="input">
+          <option value="">Не важно</option>
+          <option value="higher">Высшее</option>
+          <option value="special_secondary">Среднее специальное</option>
+          <option value="not_required">Не требуется</option>
+        </select>
+      </div>
+      <div class="form-group" style="visibility:hidden;"><!-- spacer --></div>
+    </div>
+
     <div class="form-group">
-      <label>Период поиска (дней)</label>
-      <select id="field-search-period" class="input">
-        <option value="1">1 день</option>
-        <option value="3">3 дня</option>
-        <option value="7" selected>7 дней</option>
-        <option value="14">14 дней</option>
-        <option value="30">30 дней</option>
-        <option value="">Всё время</option>
-      </select>
+      <label>Специализация (как на HH)</label>
+      <div id="flt-prof-roles" class="checkbox-grid"></div>
+      <div style="font-size:11px;color:#999;margin-top:2px;">Оставлены роли из твоей сферы (PM/PO/Coach/EM)</div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <button onclick="syncFiltersFromResume()" class="btn btn-sm">Копировать из резюме</button>
+    </div>
+
+    <!-- Шаг 3: Сохранить и сканировать -->
+    <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin-top:16px;">
+      <div style="font-size:12px;color:#666;margin-bottom:8px;font-weight:600;">
+        Шаг 3. Сохрани и запусти поиск
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button onclick="saveCurrentProfile()" class="btn">💾 Сохранить настройки</button>
+        <button onclick="scanForProfile()" class="btn" style="background:#1b4332;color:#fff;">🚀 Сканировать HH</button>
+        <span id="profile-status" style="font-size:13px;"></span>
+      </div>
+      <div id="scan-block" style="margin-top:12px;font-size:13px;">
+        <div id="scan-status" style="color:#666;"></div>
+        <div id="scan-result" style="display:none;margin-top:8px;"></div>
+        <div id="vacancy-count" style="display:none;margin-top:6px;color:#666;"></div>
+      </div>
     </div>
   </div>
 
-  <button onclick="saveFilters()" class="btn">Сохранить фильтры</button>
-  <span id="filters-status" style="margin-left: 12px;"></span>
 </div>
 
-<div class="card" style="margin-top: 16px;">
-  <h3>Интеграции</h3>
-  <div class="form-group">
-    <label>HH API Access Token (необязательно)</label>
-    <input id="field-hh_token" type="password" class="input" placeholder="Можно оставить пустым — публичный API работает без токена" />
-    <span style="font-size: 12px; color: #999;">Токен даёт больше запросов. Без токена тоже работает.</span>
-  </div>
-  <div class="form-group">
-    <label>HH Resume ID</label>
-    <input id="field-hh_resume_id" type="text" class="input" placeholder="ID резюме на HH" />
-  </div>
-  <div class="form-group">
-    <label>Telegram Chat ID</label>
-    <input id="field-telegram_chat_id" type="text" class="input" placeholder="ID чата для уведомлений" />
-  </div>
-  <button onclick="saveIntegrations()" class="btn">Сохранить</button>
-  <span id="integrations-status" style="margin-left: 12px;"></span>
+<div id="profile-empty" style="display:none;text-align:center;padding:40px;color:#999;">
+  Нет профилей. Создай первый — нажми «+ Новый».
 </div>
+
+<script>
+const EXP_LABELS = { noExperience: 'Без опыта', between1And3: '1–3 года', between3And6: '3–6 лет', moreThan6: 'Более 6 лет' };
+const EMP_LABELS = { full: 'Полная', part: 'Частичная', project: 'Проектная', volunteer: 'Волонтёрство', probation: 'Стажировка', FULL: 'Полная занятость', PART: 'Частичная / Подработка', PROJECT: 'Проектная / ГПХ', VOLUNTEER: 'Волонтёрство', PROBATION: 'Стажировка' };
+const SCH_LABELS = { fullDay: 'Полный день', shift: 'Сменный', flexible: 'Гибкий', remote: 'Удалённая работа', flyInFlyOut: 'Вахта' };
+const WF_LABELS = { remote: 'Удалённо', hybrid: 'Гибрид', office: 'На месте работодателя', travel: 'Разъездной', REMOTE: 'Удалённо', HYBRID: 'Гибрид', OFFICE: 'На месте работодателя', TRAVEL: 'Разъездной' };
+
+let currentProfileId = null;
+
+function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
+
+function setCheckboxes(containerId, values) {
+  const c = document.getElementById(containerId); if (!c) return;
+  const s = new Set(Array.isArray(values) ? values : []);
+  c.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = s.has(cb.value); });
+}
+function getChecked(containerId) {
+  const c = document.getElementById(containerId); if (!c) return [];
+  return Array.from(c.querySelectorAll('input:checked')).map(cb => cb.value);
+}
+
+function renderRoles(containerId, selected) {
+  const c = document.getElementById(containerId); if (!c) return;
+  const s = new Set(selected);
+  c.innerHTML = HH_PROF_ROLES.map(([code, name]) =>
+    `<label class="checkbox-label" style="font-size:12px;"><input type="checkbox" value="${code}" ${s.has(code)?'checked':''} /> ${name}</label>`
+  ).join('');
+}
+function getSelectedRoles(containerId) {
+  const c = document.getElementById(containerId); if (!c) return [];
+  return Array.from(c.querySelectorAll('input:checked')).map(cb => parseInt(cb.value)).filter(n => !isNaN(n));
+}
+
+// ─── Profile list ─────────────────────────────
+async function loadProfiles() {
+  const data = await api('/api/profiles');
+  const sel = document.getElementById('profile-selector');
+  const items = data.items || [];
+  sel.innerHTML = items.length
+    ? items.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option value="">— Нет профилей —</option>';
+  if (items.length) {
+    if (!currentProfileId || !items.find(p => p.id === currentProfileId)) {
+      currentProfileId = items[0].id;
+    }
+    sel.value = currentProfileId;
+    await switchProfile(currentProfileId);
+  } else {
+    document.getElementById('profile-editor').style.display = 'none';
+    document.getElementById('profile-empty').style.display = 'block';
+  }
+}
+
+async function switchProfile(id) {
+  currentProfileId = parseInt(id);
+  if (!id || isNaN(currentProfileId)) return;
+  document.getElementById('profile-selector').value = id;
+  document.getElementById('profile-empty').style.display = 'none';
+  document.getElementById('profile-editor').style.display = 'block';
+
+  const p = await api('/api/profiles/' + id);
+  if (!p) return;
+
+  const rd = p.resume_data || {};
+  const sf = p.search_filters || {};
+
+  // Resume section (read-only)
+  setVal('pe-name', p.name);
+  setVal('pe-titles', (rd.titles || []).join(', '));
+  setVal('pe-location', rd.location || '');
+  setVal('pe-salary', rd.salary_expectation ? rd.salary_expectation + ' ₽' : '');
+  setVal('pe-experience', (rd.experience || []).map(e => EXP_LABELS[e] || e).join(', '));
+  setVal('pe-employment', (rd.employment || []).map(e => EMP_LABELS[e] || e).join(', '));
+  setVal('pe-schedule', (rd.schedule || []).map(s => SCH_LABELS[s] || s).join(', '));
+  setVal('pe-work_formats', (rd.work_formats || []).map(w => WF_LABELS[w] || w).join(', '));
+
+  // Professional roles as labels
+  const rolesContainer = document.getElementById('pe-prof-roles');
+  const roleCodes = rd.professional_roles || [];
+  const roleNames = Object.fromEntries(HH_PROF_ROLES);
+  rolesContainer.innerHTML = roleCodes.length
+    ? roleCodes.map(c => `<span class="badge" style="margin:2px;">${roleNames[c] || c}</span>`).join('')
+    : '<span style="color:#999;">нет данных</span>';
+
+  // Skills as editable tag group (from resume_data.keywords, used by Gate B)
+  renderKeywords(rd.keywords || []);
+
+  // Archetype
+  const arch = p.archetype || '01';
+  document.querySelectorAll('input[name="archetype"]').forEach(cb => { cb.checked = cb.value === arch; });
+
+  // Search filters (editable) — independent from resume_data
+  setVal('flt-text', sf.text || (sf.titles || []).join(', ') || '');
+  setVal('flt-regions', (sf.regions || []).join(', '));
+  setVal('flt-industry', (sf.industry || []).join(', '));
+  setVal('flt-salary', sf.salary_from || '');
+  setVal('flt-period', sf.search_period || '7');
+  setVal('flt-salary_mode', sf.salary_mode || 'MONTH');
+  setCheckboxes('flt-search_field', sf.search_field || ['name', 'description']);
+  setCheckboxes('flt-experience', sf.experience || []);
+  setCheckboxes('flt-employment', sf.employment || []);
+  setCheckboxes('flt-schedule', sf.schedule || []);
+  setCheckboxes('flt-work_formats', sf.work_formats || []);
+  setVal('flt-education', sf.education || '');
+  renderRoles('flt-prof-roles', sf.professional_roles || []);
+
+  // Load vacancy count for this profile
+  loadVacancyCount(id);
+}
+
+async function loadVacancyCount(profileId) {
+  const el = document.getElementById('vacancy-count');
+  try {
+    const data = await api('/api/vacancies?profile_id=' + profileId);
+    const count = data.total || 0;
+    el.style.display = count > 0 ? 'block' : 'none';
+    el.textContent = count > 0
+      ? `В БД: ${count} вакансий по этому профилю. Перейти в <a href="/vacancies" style="color:#4361ee;">список вакансий</a>.`
+      : '';
+    el.innerHTML = el.textContent; // re-parse to make link clickable
+  } catch(e) { el.style.display = 'none'; }
+}
+
+// ─── CRUD ──────────────────────────────────────
+async function createProfile() {
+  const name = prompt('Название нового профиля:', 'Новый профиль');
+  if (!name) return;
+  const res = await api('/api/profiles', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) {
+    currentProfileId = res.profile.id;
+    await loadProfiles();
+  }
+}
+
+async function deleteCurrentProfile() {
+  if (!currentProfileId) return;
+  if (!confirm('Удалить профиль и все его настройки?')) return;
+  await fetch('/api/profiles/' + currentProfileId, { method: 'DELETE' });
+  currentProfileId = null;
+  await loadProfiles();
+}
+
+async function saveCurrentProfile() {
+  if (!currentProfileId) return;
+
+  // Load existing to preserve resume_data, matrix_data
+  const existing = await api('/api/profiles/' + currentProfileId);
+
+  const archetype = document.querySelector('input[name="archetype"]:checked')?.value || '01';
+  const textStr = val('flt-text') || '';
+  const titlesArr = textStr.split(',').map(s => s.trim()).filter(Boolean);
+  const resume_data = existing.resume_data || {};
+  resume_data.keywords = currentKeywords;
+
+  const body = {
+    name: val('pe-name') || 'Без имени',
+    archetype: archetype,
+    resume_data: resume_data,
+    matrix_data: existing.matrix_data || {},
+    search_filters: {
+      text: textStr,
+      titles: titlesArr,
+      regions: val('flt-regions').split(',').map(s => s.trim()).filter(Boolean),
+      industry: val('flt-industry').split(',').map(s => s.trim()).filter(Boolean),
+      salary_from: parseInt(val('flt-salary')) || 0,
+      salary_mode: val('flt-salary_mode') || 'MONTH',
+      search_field: getChecked('flt-search_field'),
+      experience: getChecked('flt-experience'),
+      employment: getChecked('flt-employment'),
+      schedule: getChecked('flt-schedule'),
+      work_formats: getChecked('flt-work_formats'),
+      professional_roles: getSelectedRoles('flt-prof-roles'),
+      search_period: val('flt-period') || '7',
+      education: val('flt-education') || '',
+    },
+  };
+  const res = await api('/api/profiles/' + currentProfileId, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  const st = document.getElementById('profile-status');
+  if (res.ok) {
+    st.textContent = 'Сохранено!'; st.style.color = '#28a745';
+    await loadProfiles();
+  } else {
+    st.textContent = 'Ошибка!'; st.style.color = '#dc3545';
+  }
+  setTimeout(() => st.textContent = '', 3000);
+}
+
+// ─── Sync filters from resume ──────────────────
+async function syncFiltersFromResume() {
+  const p = await api('/api/profiles/' + currentProfileId);
+  const rd = (p && p.resume_data) || {};
+  setCheckboxes('flt-experience', rd.experience || []);
+  setCheckboxes('flt-employment', (rd.employment || []).map(v => v.toUpperCase()));
+  setCheckboxes('flt-schedule', rd.schedule || []);
+  setCheckboxes('flt-work_formats', (rd.work_formats || []).map(v => v.toUpperCase()));
+  renderRoles('flt-prof-roles', rd.professional_roles || []);
+  if (rd.titles && rd.titles.length) setVal('flt-text', rd.titles.join(', '));
+}
+
+// ─── Editable keywords (from resume) ──────────
+let currentKeywords = [];
+
+function renderKeywords(kws) {
+  currentKeywords = Array.isArray(kws) ? kws : [];
+  const c = document.getElementById('pe-keywords');
+  if (!c) return;
+  if (!currentKeywords.length) {
+    c.innerHTML = '<span style="color:#999;font-size:13px;">нет данных</span>';
+    return;
+  }
+  c.innerHTML = currentKeywords.map((k, i) =>
+    `<span class="badge" style="background:#e2e3e5;color:#383d41;margin:2px;cursor:pointer;" onclick="removeKeyword(${i})" title="Удалить">${k} ✕</span>`
+  ).join('');
+}
+
+function addKeyword() {
+  const input = document.getElementById('kw-input');
+  const kw = input.value.trim();
+  if (!kw) return;
+  if (!currentKeywords.includes(kw)) currentKeywords.push(kw);
+  renderKeywords(currentKeywords);
+  input.value = '';
+}
+
+function removeKeyword(idx) {
+  currentKeywords.splice(idx, 1);
+  renderKeywords(currentKeywords);
+}
+
+// ─── Upload resume ─────────────────────────────
+async function uploadResume() {
+  const fileInput = document.getElementById('resume-file-input');
+  const st = document.getElementById('upload-status');
+  const file = fileInput.files[0];
+  if (!file) { st.textContent = 'Выбери .html'; st.style.color = '#dc3545'; return; }
+  const fd = new FormData(); fd.append('file', file);
+  if (currentProfileId) fd.append('profile_id', currentProfileId);
+  st.textContent = 'Загрузка...'; st.style.color = '#666';
+  try {
+    const res = await fetch('/api/profile/upload-resume', { method: 'POST', body: fd });
+    const data = await res.json();
+    st.textContent = data.ok ? 'Готово!' : (data.error || 'Ошибка');
+    st.style.color = data.ok ? '#28a745' : '#dc3545';
+    if (data.ok) {
+      fileInput.value = '';
+      // Sync filters from resume automatically
+      const rd = data.resume_data || {};
+      if (currentProfileId) {
+        const p = await api('/api/profiles/' + currentProfileId);
+        const existingSf = (p && p.search_filters) || {};
+        // Only fill if search_filters are empty
+        if (!existingSf.text && !existingSf.text?.trim()) {
+          const body = {
+            name: (p && p.name) || 'Без имени',
+            archetype: (p && p.archetype) || '01',
+            resume_data: rd,
+            matrix_data: (p && p.matrix_data) || {},
+            search_filters: {
+              text: (rd.titles || []).join(', '),
+              titles: rd.titles || [],
+              professional_roles: rd.professional_roles || [],
+              regions: rd.location ? [rd.location] : [],
+              salary_from: rd.salary_expectation || 0,
+              salary_mode: 'MONTH',
+              search_field: ['name', 'description'],
+              experience: rd.experience || [],
+              employment: (rd.employment || []).map(v => v.toUpperCase()),
+              schedule: rd.schedule || [],
+              work_formats: (rd.work_formats || []).map(v => v.toUpperCase()),
+              search_period: '7',
+              education: '',
+              industry: [],
+            },
+          };
+          await api('/api/profiles/' + currentProfileId, { method: 'PUT', body: JSON.stringify(body) });
+        }
+      }
+      await loadProfiles();
+      if (data.profile_id) {
+        currentProfileId = data.profile_id;
+        await switchProfile(currentProfileId);
+      }
+      document.getElementById('profile-selector').value = currentProfileId;
+    }
+    setTimeout(() => { st.textContent = ''; st.style.color = ''; }, 3000);
+  } catch(e) { st.textContent = 'Ошибка соединения'; st.style.color = '#dc3545'; setTimeout(() => { st.textContent = ''; st.style.color = ''; }, 3000); }
+}
+
+// ─── Scan HH for this profile ──────────────────
+async function scanForProfile() {
+  const st = document.getElementById('scan-status');
+  const resEl = document.getElementById('scan-result');
+  if (!currentProfileId) { st.textContent = 'Нет выбранного профиля'; return; }
+
+  // Save filters first
+  await saveCurrentProfile();
+
+  st.textContent = 'Сканирование HH.ru... 30-60 сек'; st.style.color = '#666';
+  resEl.style.display = 'none';
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    const res = await fetch('/api/scan?profile_id=' + currentProfileId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    const data = await res.json();
+    if (data.ok) {
+      st.textContent = ''; st.style.color = '';
+      resEl.style.display = 'block';
+      const cls = data.total > 0 ? '#28a745' : '#dc3545';
+      resEl.innerHTML = `<span style="color:${cls};font-weight:600;">${data.message}</span>`;
+      await loadVacancyCount(currentProfileId);
+    } else {
+      st.textContent = data.error || 'Ошибка'; st.style.color = '#dc3545';
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      st.textContent = 'Прервано по таймауту (90 сек)'; st.style.color = '#dc3545';
+    } else {
+      st.textContent = 'Ошибка соединения'; st.style.color = '#dc3545';
+    }
+  }
+}
+
+// ─── Clear all filter fields ───────────────────
+function clearFilters() {
+  setVal('flt-text', '');
+  setVal('flt-regions', '');
+  setVal('flt-industry', '');
+  setVal('flt-salary', '');
+  setVal('flt-period', '7');
+  setVal('flt-salary_mode', 'MONTH');
+  setVal('flt-education', '');
+  setCheckboxes('flt-search_field', []);
+  setCheckboxes('flt-experience', []);
+  setCheckboxes('flt-employment', []);
+  setCheckboxes('flt-schedule', []);
+  setCheckboxes('flt-work_formats', []);
+  renderRoles('flt-prof-roles', []);
+  document.getElementById('hh-url-result').style.display = 'none';
+  document.getElementById('hh-url-status').textContent = '';
+}
+
+// ─── Toggle industry quick-pick ────────────────
+function toggleIndustry(code) {
+  const el = document.getElementById('flt-industry');
+  const vals = el.value.split(',').map(s => s.trim()).filter(Boolean);
+  const idx = vals.indexOf(code);
+  if (idx >= 0) { vals.splice(idx, 1); } else { vals.push(code); }
+  el.value = vals.join(', ');
+}
+
+// ─── Export filter to HH URL ───────────────────
+function buildFilterFromForm() {
+  return {
+    text: val('flt-text') || '',
+    regions: val('flt-regions').split(',').map(s => s.trim()).filter(Boolean),
+    industry: val('flt-industry').split(',').map(s => s.trim()).filter(Boolean),
+    salary_from: parseInt(val('flt-salary')) || 0,
+    salary_mode: val('flt-salary_mode') || 'MONTH',
+    search_period: val('flt-period') || '7',
+    search_field: getChecked('flt-search_field'),
+    experience: getChecked('flt-experience'),
+    employment: getChecked('flt-employment'),
+    schedule: getChecked('flt-schedule'),
+    work_formats: getChecked('flt-work_formats'),
+    professional_roles: getSelectedRoles('flt-prof-roles'),
+    education: val('flt-education') || '',
+  };
+}
+
+function buildHHUrl() {
+  const p = buildFilterFromForm();
+  const params = new URLSearchParams();
+  if (p.text) params.set('text', p.text);
+  if (p.salary_from > 0) params.set('salary', p.salary_from);
+  params.set('order_by', 'publication_time');
+  params.set('search_period', p.search_period || '7');
+  params.set('items_on_page', '100');
+  if (p.salary_mode) params.set('salary_mode', p.salary_mode);
+  if (p.education) params.set('education', p.education);
+  params.set('ored_clusters', 'true');
+  if (p.regions.length) params.set('area', p.regions[0]);
+  p.industry.forEach(v => params.append('industry', v));
+  p.search_field.forEach(v => params.append('search_field', v));
+  p.experience.forEach(v => params.append('experience', v));
+  p.employment.forEach(v => params.append('employment_form', v));
+  // Skip schedule=fullDay when it's the only value — HH treats "no param" as "all schedules"
+  // but schedule=fullDay forces HH to select 5/2 + 6/1, narrowing results
+  if (!(p.schedule.length === 1 && p.schedule[0] === 'fullDay')) {
+    p.schedule.forEach(v => params.append('schedule', v));
+  }
+  p.work_formats.forEach(v => params.append('work_format', v));
+  p.professional_roles.forEach(v => params.append('professional_role', v));
+  return 'https://hh.ru/search/vacancy?' + params.toString();
+}
+
+async function openHHExport() {
+  await saveCurrentProfile();
+  const url = buildHHUrl();
+  const linkEl = document.getElementById('hh-url-link');
+  linkEl.innerHTML = `<a href="${url}" target="_blank" style="color:#4361ee;">Открыть на HH.ru</a>
+    <br><span style="font-size:11px;color:#888;word-break:break-all;">${url}</span>`;
+  document.getElementById('hh-url-result').style.display = 'block';
+  document.getElementById('hh-url-status').textContent = 'Ссылка сгенерирована';
+  document.getElementById('hh-url-status').style.color = '#28a745';
+  setTimeout(() => document.getElementById('hh-url-status').textContent = '', 3000);
+  window.open(url, '_blank');
+}
+
+function copyHHUrl() {
+  const url = buildHHUrl();
+  navigator.clipboard.writeText(url).then(() => {
+    const st = document.getElementById('hh-url-status');
+    st.textContent = 'Скопировано!';
+    st.style.color = '#28a745';
+    setTimeout(() => st.textContent = '', 2000);
+  });
+}
+
+// ─── Import HH filter from URL ─────────────────
+async function importHHFilter() {
+  const url = prompt('Вставь адресную строку с HH после настройки фильтра:');
+  if (!url) return;
+  try {
+    const parsed = new URL(url);
+    const p = parsed.searchParams;
+
+    const AREA_NAMES = { '113': 'Вся РФ', '1': 'Москва', '2': 'СПб', '1139': 'Краснодар' };
+    const areaCode = p.get('area');
+    if (areaCode) setVal('flt-regions', areaCode);
+
+    if (p.get('text')) setVal('flt-text', decodeURIComponent(p.get('text')));
+    if (p.get('salary')) setVal('flt-salary', parseInt(p.get('salary')) || '');
+
+    setVal('flt-industry', p.getAll('industry').join(', '));
+
+    setCheckboxes('flt-search_field', p.getAll('search_field'));
+
+    const roles = p.getAll('professional_role').map(Number).filter(n => !isNaN(n));
+    renderRoles('flt-prof-roles', roles);
+
+    setCheckboxes('flt-experience', p.getAll('experience'));
+    setCheckboxes('flt-employment', p.getAll('employment_form'));
+    setCheckboxes('flt-schedule', p.getAll('schedule'));
+    setCheckboxes('flt-work_formats', p.getAll('work_format'));
+
+    if (p.get('search_period')) setVal('flt-period', p.get('search_period'));
+    if (p.get('salary_mode')) setVal('flt-salary_mode', p.get('salary_mode'));
+    if (p.get('education')) setVal('flt-education', p.get('education'));
+
+    const st = document.getElementById('hh-url-status');
+    st.textContent = 'Фильтр импортирован из URL. Регион: ' + (areaCode ? areaCode + ' (' + (AREA_NAMES[areaCode] || 'код ' + areaCode) + ')' : 'не указан (будет твой регион по умолчанию)');
+    st.style.color = '#28a745';
+    setTimeout(() => { if (st.textContent.includes('импортирован')) st.textContent = ''; }, 6000);
+  } catch(e) {
+    alert('Не удалось разобрать URL. Вставь полную ссылку из браузера.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadProfiles();
+});
+</script>
 {% endblock %}

@@ -1,61 +1,64 @@
 {
   "name": "Брель Денис Анатольевич",
-  "nickname": "outmilker",
-  "brand": "outmilk",
-  "role": "IT Product & Project Manager (Hybrid PM-PO)",
-  "location": "Санкт-Петербург / Ставропольский край",
-  "work_format": "remote",
-  "salary_expectation": 250000,
-  "salary_currency": "RUB",
-  "salary_type": "net",
-  "hh_resume_id": "",
-  "telegram_chat_id": "",
-  "auto_respond_below_score": 6.9,
+  "location": "Санкт-Петербург",
+  "work_format": "REMOTE",
+  "titles": [
+    "IT Product & Project Manager (Hybrid PM-PO)"
+  ],
+  "work_formats": [
+    "REMOTE",
+    "HYBRID"
+  ],
+  "employment": [
+    "FULL"
+  ],
   "search_filters": {
-    "regions": [
-      "Москва",
-      "Санкт-Петербург",
-      "Россия"
-    ],
-    "titles": [
-      "Руководитель проектов",
-      "Руководитель продуктов",
-      "PM",
-      "PO",
-      "Менеджер проектов",
-      "Project manager",
-      "Product manager"
-    ],
-    "keywords": [],
-    "professional_roles": [
-      107,
-      73,
-      150,
-      151
-    ],
-    "experience": [
-      "between3And6",
-      "moreThan6"
-    ],
-    "employment": [
-      "full"
-    ],
-    "schedule": [
-      "fullDay",
-      "remote"
-    ],
-    "salary_from": 250000,
-    "search_period": "7"
+    "text": "\"Руководитель портфеля\" OR \"Head of Delivery\" OR \"Delivery Manager\" OR \"IT Portfolio Manager\" OR \"PMO\" OR \"Project Management Office\" OR \"Enterprise Project Manager\" OR \"Senior Project Manager\" OR \"Senior IT Project Manager\" OR \"Руководитель направления разработки\" OR \"IT Director\" OR \"Head of Project Management\" OR \"Program Manager\" OR \"Delivery Lead\" OR \"Руководитель проекта\"",
+    "search_field": "name,description",
+    "order_by": "publication_time",
+    "per_page": "100",
+    "search_period": "1",
+    "salary": "250000",
+    "experience": ["between3And6", "moreThan6"],
+    "professional_roles": [73, 107],
+    "work_format": ["REMOTE", "HYBRID"],
+    "regions": ["Россия"],
+    "employment_form": "FULL",
+    "ored_clusters": true
   },
-  "resume_profiles": {
-    "01": {
-      "name": "IT Project Manager (Enterprise)",
-      "description": "Enterprise PM, системная интеграция, B2B/B2G"
-    },
-    "03": {
-      "name": "IT Product & Project Manager (Hybrid PM-PO)",
-      "description": "Продуктовый PM/PO гибрид"
-    }
-  },
-  "hh_access_token": ""
+  "keywords": [
+    "Управление продуктом",
+    "Agile (Scrum, Kanban)",
+    "Управление бэклогом",
+    "Roadmap / Приоритизация",
+    "Jira / Confluence",
+    "Продуктовые метрики (NPS, eNPS)",
+    "KPI / OKR / SLA",
+    "User Story / UI/UX",
+    "CI/CD",
+    "Docker / Kubernetes",
+    "SQL / PostgreSQL",
+    "BPMN / UML",
+    "Управление рисками",
+    "Stakeholder Management",
+    "AI-инструменты (LLM)",
+    "Delivery management",
+    "YouTrack",
+    "Miro",
+    "MS Visio",
+    "Draw.io",
+    "Power BI",
+    "MS Project",
+    "A/B тесты",
+    "Product Discovery",
+    "RICE",
+    "NPS",
+    "eNPS",
+    "Time-to-Market",
+    "AI-инструменты, LLM"
+  ],
+  "professional_roles": [
+    73,
+    107
+  ]
 }

@@ -4,31 +4,772 @@
 {% block content %}
 <h1>Вакансии</h1>
 
-<div style="margin-bottom: 16px;display:flex;gap:12px;align-items:center;">
-  <label>Фильтр по категории: </label>
-  <select id="category-filter" onchange="filterVacancies()" class="input" style="width: auto;">
-    <option value="">Все</option>
-    <option value="S">S (идеал)</option>
-    <option value="A">A (сильное)</option>
-    <option value="B">B (можно)</option>
-    <option value="C">C (слабое)</option>
-    <option value="REJECT">REJECT</option>
+<div class="sticky-filter" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+  <label>Профиль:</label>
+  <select id="profile-filter" class="input" style="width:auto;min-width:140px;" onchange="filterVacancies()">
+    <option value="">Все профили</option>
   </select>
+  <span id="vacancies-count" style="font-size:14px;color:#555;margin-left:auto;"></span>
+</div>
+
+<div style="margin-bottom:14px;">
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label>Категория:</label>
+      <div id="category-filter" class="checkbox-group" style="display:flex;gap:4px;flex-wrap:wrap;">
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('category-filter','S',this)"><input type="checkbox" value="S" checked style="display:none;">Идеально</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('category-filter','A',this)"><input type="checkbox" value="A" checked style="display:none;">Отлично</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('category-filter','B',this)"><input type="checkbox" value="B" checked style="display:none;">Хорошо</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('category-filter','C',this)"><input type="checkbox" value="C" checked style="display:none;">Возможно</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('category-filter','REJECT',this)"><input type="checkbox" value="REJECT" checked style="display:none;">Пропустить</label>
+      </div>
+    </span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label>Статус:</label>
+      <div id="status-filter" class="checkbox-group" style="display:flex;gap:4px;flex-wrap:wrap;">
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('status-filter','new',this)"><input type="checkbox" value="new" checked style="display:none;">Новые</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('status-filter','applied',this)"><input type="checkbox" value="applied" checked style="display:none;">Отклик</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('status-filter','invited',this)"><input type="checkbox" value="invited" checked style="display:none;">Приглашение</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('status-filter','in_progress',this)"><input type="checkbox" value="in_progress" checked style="display:none;">В работе</label>
+        <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleChipFilter('status-filter','rejected',this)"><input type="checkbox" value="rejected" checked style="display:none;">Отказ</label>
+      </div>
+    </span>
+  </div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label>Период:</label>
+      <select id="period-filter" onchange="toggleCustomDate(); filterVacancies();" class="input" style="width:auto;">
+        <option value="">За всё время</option>
+        <option value="day">За сутки</option>
+        <option value="week">За неделю</option>
+        <option value="month">За месяц</option>
+        <option value="custom">Произвольный</option>
+      </select>
+      <span id="custom-date-range" style="display:none;">
+        <input type="date" id="date-from" class="input" style="width:140px;" onchange="filterVacancies()">
+        <input type="date" id="date-to" class="input" style="width:140px;" onchange="filterVacancies()">
+      </span>
+    </span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label>Поиск:</label>
+      <div style="display:flex;gap:2px;align-items:center;">
+        <input id="search-input" class="input" style="width:200px;" placeholder="Название, компания..." oninput="filterVacancies()">
+        <button type="button" class="btn btn-sm" onclick="clearVacancySearch()" title="Очистить поиск" style="padding:2px 6px;font-size:11px;">✕</button>
+      </div>
+    </span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label>Сортировка:</label>
+      <select id="sort-by" onchange="filterVacancies()" class="input" style="width:auto;">
+        <option value="score">Score (по убыв.)</option>
+        <option value="published_at">Дата публикации</option>
+        <option value="created_at">Дата добавления</option>
+      </select>
+    </span>
+    <span style="display:flex;align-items:center;gap:4px;">
+      <label class="checkbox-label" style="font-size:12px;cursor:pointer;" onclick="toggleDeletedFilter(this)">
+        <input type="checkbox" id="show-deleted" style="display:none;"> Показать удалённые
+    </label>
+  </span>
+</div>
+
+<div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;padding:8px 12px;background:#f8f9fa;border-radius:6px;font-size:13px;">
+  <span style="color:#555;">➕ Импорт по ссылке:</span>
+  <input id="import-url" class="input" style="flex:1;min-width:200px;" placeholder="https://hh.ru/vacancy/12345678">
+  <button onclick="importVacancy()" class="btn btn-sm">Загрузить</button>
+  <span style="width:1px;height:24px;background:#ddd;margin:0 4px;"></span>
+  <button onclick="showManualForm('', function(){ filterVacancies(); })" class="btn btn-sm" style="background:#28a745;">+ Новая</button>
+  <span id="import-status" style="color:#888;"></span>
+</div>
 </div>
 
 <table class="table">
   <thead>
     <tr>
-      <th>Вакансия</th>
-      <th>Компания</th>
-      <th>Score</th>
-      <th>Категория</th>
-      <th>Статус</th>
-      <th>Дата</th>
+      <th onclick="toggleSort('title')" style="cursor:pointer;">Вакансия <span class="sort-indicator" id="s-title"></span></th>
+      <th onclick="toggleSort('company')" style="cursor:pointer;">Компания <span class="sort-indicator" id="s-company"></span></th>
+      <th onclick="toggleSort('score')" style="cursor:pointer;">Score <span class="sort-indicator" id="s-score"></span></th>
+      <th onclick="toggleSort('category')" style="cursor:pointer;">Категория <span class="sort-indicator" id="s-category"></span></th>
+      <th onclick="toggleSort('status')" style="cursor:pointer;">Статус <span class="sort-indicator" id="s-status"></span></th>
+      <th>Архетип</th>
+      <th onclick="toggleSort('published_at')" style="cursor:pointer;">Опубликована <span class="sort-indicator" id="s-published_at"></span></th>
+      <th onclick="toggleSort('created_at')" style="cursor:pointer;">Добавлена <span class="sort-indicator" id="s-created_at"></span></th>
     </tr>
   </thead>
   <tbody id="vacancies-body">
-    <tr><td colspan="6" style="text-align:center;color:#999;">Загрузка...</td></tr>
+    <tr><td colspan="8" style="text-align:center;color:#999;">Загрузка...</td></tr>
   </tbody>
 </table>
+
+<script>
+const CAT_LABELS = { S: 'Идеально', A: 'Отлично', B: 'Хорошо', C: 'Возможно', REJECT: 'Пропустить' };
+const CAT_COLORS = { S: '#28a745', A: '#007bff', B: '#ffc107', C: '#fd7e14', REJECT: '#dc3545' };
+const CAT_BG = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#ffe5cc', REJECT: '#f8d7da' };
+const STATUS_LABELS = { new: 'Новые', applied: 'Отклик', invited: 'Приглашение', in_progress: 'В работе', offer: 'Оффер', rejected: 'Отказ' };
+let sortColumn = '';
+let sortDir = 'asc';
+
+function toggleCustomDate() {
+  document.getElementById('custom-date-range').style.display =
+    document.getElementById('period-filter').value === 'custom' ? 'inline' : 'none';
+}
+
+async function importVacancy() {
+  const url = document.getElementById('import-url').value.trim();
+  if (!url) return;
+  const st = document.getElementById('import-status');
+  st.textContent = '⏳ Загрузка...';
+  try {
+    const profileId = document.getElementById('profile-filter').value;
+    const body = {url: url};
+    if (profileId) body.profile_id = parseInt(profileId);
+    const r = await fetch('/api/vacancies/import', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (j.ok) {
+      st.textContent = `✅ ${j.title} (${j.category || 'без категории'})${j.inserted ? '' : ' — уже была'}`;
+      document.getElementById('import-url').value = '';
+      filterVacancies();
+    } else {
+      const url = document.getElementById('import-url').value.trim();
+      st.innerHTML = '❌ ' + (j.error || 'ошибка') +
+        ` <a href="#" onclick="showManualForm('', function(){ filterVacancies(); }); document.getElementById('mv-url').value='${url.replace(/'/g,"\\'")}'; return false;" style="color:#e94560;">[ввести вручную]</a>`;
+    }
+  } catch(e) {
+    st.textContent = '❌ ' + e.message;
+  }
+}
+
+function parseDateHH(s) {
+  const ruMonths = { января:0,февраля:1,марта:2,апреля:3,мая:4,июня:5,июля:6,августа:7,сентября:8,октября:9,ноября:10,декабря:11 };
+  const m = s.match(/(\d+)\s*(\S+)\s*(\d+)/);
+  if (m) {
+    const day = parseInt(m[1]), month = ruMonths[m[2].toLowerCase()], year = parseInt(m[3]);
+    if (month !== undefined) return new Date(year, month, day);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadProfiles();
+  loadProfileFromUrl();
+  initChipFilters();
+  const params = new URLSearchParams(window.location.search);
+  ['period'].forEach(p => {
+    const val = params.get(p);
+    const el = document.getElementById(p + '-filter');
+    if (val && el && el.querySelector(`option[value="${val}"]`)) el.value = val;
+  });
+  const co = params.get('company');
+  if (co) document.getElementById('search-input').value = co;
+  const q = params.get('q');
+  if (q) document.getElementById('search-input').value = q;
+  filterVacancies();
+  // Escape closes modal
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const vm = document.getElementById('vacancy-modal');
+      if (vm && vm.style.display !== 'none') closeVacancyModal();
+    }
+  });
+});
+
+async function loadProfileFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const pid = params.get('profile_id');
+  if (pid) {
+    // Wait for profiles to load, then set value
+    await new Promise(r => setTimeout(r, 100));
+    const el = document.getElementById('profile-filter');
+    if (el && el.querySelector(`option[value="${pid}"]`)) el.value = pid;
+  }
+}
+
+async function loadProfiles() {
+  try {
+    const data = await api('/api/profiles');
+    const sel = document.getElementById('profile-filter');
+    if (data.items && data.items.length) {
+      sel.innerHTML = '<option value="">Все профили</option>' +
+        data.items.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+  } catch(e) {}
+}
+
+function saveFilterState() {
+  const catEls = document.querySelectorAll('#category-filter input[type="checkbox"]');
+  const catFilter = Array.from(catEls).filter(cb => cb.checked).map(cb => cb.value);
+  const statusEls = document.querySelectorAll('#status-filter input[type="checkbox"]');
+  const statusFilter = Array.from(statusEls).filter(cb => cb.checked).map(cb => cb.value);
+  const periodFilter = document.getElementById('period-filter').value;
+  const searchVal = document.getElementById('search-input').value.trim();
+  const showDeleted = document.getElementById('show-deleted').checked;
+  try {
+    localStorage.setItem('vh_filters', JSON.stringify({
+      categories: catFilter, statuses: statusFilter, period: periodFilter, q: searchVal, show_deleted: showDeleted
+    }));
+  } catch(e) {}
+}
+
+function fmtDeleteReason(raw) {
+  if (!raw) return 'причина не указана';
+  try { const arr = JSON.parse(raw); return Array.isArray(arr) ? arr.join(', ') : raw; }
+  catch(e) { return raw; }
+}
+async function filterVacancies() {
+  const catEls = document.querySelectorAll('#category-filter input[type="checkbox"]');
+  const catFilter = Array.from(catEls).filter(cb => cb.checked).map(cb => cb.value);
+  const statusEls = document.querySelectorAll('#status-filter input[type="checkbox"]');
+  const statusFilter = Array.from(statusEls).filter(cb => cb.checked).map(cb => cb.value);
+  const periodFilter = document.getElementById('period-filter').value;
+  const sortBy = document.getElementById('sort-by').value;
+  const profileId = document.getElementById('profile-filter').value;
+
+  const params = new URLSearchParams();
+  if (catFilter.length) params.set('category', catFilter.join(','));
+  if (statusFilter.length) params.set('status', statusFilter.join(','));
+  if (periodFilter) params.set('period', periodFilter);
+  if (profileId) params.set('profile_id', profileId);
+  const searchVal = document.getElementById('search-input').value.trim();
+  if (searchVal) params.set('q', searchVal);
+  const newUrl = params.toString() ? '?' + params.toString() : window.location.pathname;
+  window.history.replaceState({}, '', newUrl);
+  saveFilterState();
+
+  const showDeleted = document.getElementById('show-deleted').checked;
+  const url = '/api/vacancies?show_deleted=' + showDeleted + (profileId ? '&profile_id=' + profileId : '');
+  const data = await api(url);
+  if (!data || !data.items) return;
+
+  let items = data.items;
+  // Always apply category filter — empty = show nothing
+  items = items.filter(v => !v.category || catFilter.includes(v.category));
+  if (!catFilter.length) items = [];
+  // Status filter: all checked = no filter; deleted bypass status filter
+  const allStatusChecked = statusFilter.length === statusEls.length;
+  if (!allStatusChecked) {
+    items = items.filter(v => v.deleted_at ? showDeleted : (!v.status || statusFilter.includes(v.status)));
+    if (!statusFilter.length && !showDeleted) items = [];
+  }
+
+  // Search
+  const search = document.getElementById('search-input').value.trim().toLowerCase();
+  if (search) {
+    items = items.filter(v =>
+      (v.title || '').toLowerCase().includes(search) ||
+      (v.company || '').toLowerCase().includes(search)
+    );
+  }
+
+  // Period filter
+  const now = new Date();
+  if (periodFilter) {
+    let fromDate = null;
+    if (periodFilter === 'custom') {
+      const d1 = document.getElementById('date-from').value;
+      const d2 = document.getElementById('date-to').value;
+      if (d1) fromDate = new Date(d1 + 'T00:00:00');
+      if (d2) {
+        const toDate = new Date(d2 + 'T23:59:59');
+        items = items.filter(v => {
+          const d = v.created_at ? new Date(v.created_at) : (v.published_at ? parseDateHH(v.published_at) : null);
+          if (!d) return true;
+          return d <= toDate;
+        });
+      }
+    } else {
+      const days = { day:1, week:7, month:30 }[periodFilter] || 9999;
+      items = items.filter(v => {
+        if (days >= 9999) return true;
+        const d = v.created_at ? new Date(v.created_at) : (v.published_at ? parseDateHH(v.published_at) : null);
+        if (!d) return true;
+        const age = (now - d) / 86400000;
+        return age <= days && age >= -1;
+      });
+    }
+    if (fromDate) {
+      items = items.filter(v => {
+        const d = v.created_at ? new Date(v.created_at) : (v.published_at ? parseDateHH(v.published_at) : null);
+        if (!d) return true;
+        return d >= fromDate;
+      });
+    }
+  }
+
+  // Deleted items respect all filters (period, category, search) — no override
+
+  // Column sort
+  if (sortColumn) {
+    items.sort((a, b) => {
+      let va = a[sortColumn], vb = b[sortColumn];
+      if (sortColumn === 'score') {
+        va = va || 0; vb = vb || 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      if (sortColumn === 'category') {
+        const order = { S: 0, A: 1, B: 2, C: 3, REJECT: 4 };
+        va = order[va] !== undefined ? order[va] : 99;
+        vb = order[vb] !== undefined ? order[vb] : 99;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      if (sortColumn === 'published_at' || sortColumn === 'created_at') {
+        va = va || ''; vb = vb || '';
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      va = (va || '').toString().toLowerCase();
+      vb = (vb || '').toString().toLowerCase();
+      return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  } else if (sortBy === 'score') {
+    items.sort((a, b) => (b.score || 0) - (a.score || 0));
+  } else if (sortBy === 'published_at') {
+    items.sort((a, b) => ((b.published_at || '') > (a.published_at || '') ? 1 : -1));
+  } else {
+    items.sort((a, b) => ((b.created_at || '') > (a.created_at || '') ? 1 : -1));
+  }
+
+  // Total count with active/deleted breakdown
+  const activeCount = items.filter(v => !v.deleted_at).length;
+  const deletedCount = items.filter(v => v.deleted_at).length;
+  document.getElementById('vacancies-count').innerHTML =
+    items.length
+      ? `Найдено: <strong>${items.length}</strong> &nbsp;·&nbsp; активных <strong>${activeCount}</strong> &nbsp;·&nbsp; удалено <strong>${deletedCount}</strong>`
+      : 'Нет вакансий по выбранным фильтрам';
+
+  const tbody = document.getElementById('vacancies-body');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">Нет вакансий</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(v => `
+    <tr data-vacancy-id="${v.id}">
+      <td><a href="#" onclick="event.preventDefault();openVacancyModal(${v.id});return false;">${v.title || '—'}</a></td>
+      <td>${v.company || '—'}</td>
+      <td style="font-weight:600;">${v.score != null ? v.score.toFixed(2) : '?'}</td>
+      <td><span class="badge" style="background:${CAT_BG[v.category] || '#e2e3e5'};color:${CAT_COLORS[v.category] || '#383d41'};">${CAT_LABELS[v.category] || v.category || '—'}</span></td>
+      <td>${v.deleted_at
+        ? `<span class="badge badge-REJECT vacancy-status-badge">Удалена</span><br><span style="font-size:10px;color:#e74c3c;">✕ ${fmtDeleteReason(v.delete_reason)}</span>`
+        : `<span class="badge badge-${v.status || 'new'} vacancy-status-badge">${STATUS_LABELS[v.status] || v.status || 'Новые'}</span>`}</td>
+      <td><span class="badge archetype-badge" style="background:${v.resume_archetype === '03' ? '#e8daef' : '#d6eaf8'};color:#2c3e50;font-size:11px;" id="vacancy-row-${v.id}-archetype">${v.resume_archetype || '—'}</span></td>
+      <td style="font-size:12px;">${fmtVacancyDate(v.published_at)}</td>
+      <td style="font-size:12px;">${fmtVacancyDate(v.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+function fmtVacancyDate(s) {
+  if (!s) return '—';
+  const ruMonths = {января:'01',февраля:'02',марта:'03',апреля:'04',мая:'05',июня:'06',июля:'07',августа:'08',сентября:'09',октября:'10',ноября:'11',декабря:'12'};
+  // "24 июня 2026" → "24.06.2026"
+  const m1 = s.match(/(\d+)\s+(\S+)\s+(\d{4})/);
+  if (m1 && ruMonths[m1[2].toLowerCase()]) return m1[1].padStart(2,'0') + '.' + ruMonths[m1[2].toLowerCase()] + '.' + m1[3];
+  // "2026-07-14" → "14.07.2026"
+  const m2 = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return m2[3] + '.' + m2[2] + '.' + m2[1];
+  // "14 July 2026" (oops) → try Date parse
+  const d = new Date(s);
+  if (!isNaN(d)) return d.toLocaleDateString('ru-RU');
+  return s;
+}
+
+function clearVacancySearch() {
+  document.getElementById('search-input').value = '';
+  filterVacancies();
+}
+
+function toggleDeletedFilter(el) {
+  const cb = document.getElementById('show-deleted');
+  cb.checked = !cb.checked;
+  filterVacancies();
+}
+
+function toggleSort(column) {
+  if (sortColumn === column) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn = column;
+    sortDir = 'asc';
+  }
+  document.querySelectorAll('.sort-indicator').forEach(el => {
+    const col = el.id.replace('s-', '');
+    if (col === column) {
+      el.textContent = sortDir === 'asc' ? '▲' : '▼';
+      el.classList.add('active');
+    } else {
+      el.textContent = '';
+      el.classList.remove('active');
+    }
+  });
+  filterVacancies();
+}
+
+// ─── Chip filters (multi-select) ──────────────
+function toggleChipFilter(containerId, val, labelEl) {
+  const cb = labelEl.querySelector('input');
+  cb.checked = !cb.checked;
+  labelEl.style.opacity = cb.checked ? '1' : '0.4';
+  filterVacancies();
+}
+
+function initChipFilters() {
+  const params = new URLSearchParams(window.location.search);
+  let cats = params.get('category') ? params.get('category').split(',') : [];
+  let stats = params.get('status') ? params.get('status').split(',') : [];
+  // If no URL params, try localStorage
+  if (!cats.length && !stats.length) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('vh_filters'));
+      if (saved) {
+        cats = saved.categories || [];
+        stats = saved.statuses || [];
+        if (saved.period) document.getElementById('period-filter').value = saved.period;
+        if (saved.q) document.getElementById('search-input').value = saved.q;
+        if (saved.show_deleted) document.getElementById('show-deleted').checked = true;
+      }
+    } catch(e) {}
+  }
+  document.querySelectorAll('#category-filter input').forEach(cb => {
+    if (cats.length) cb.checked = cats.includes(cb.value);
+    const label = cb.closest('label');
+    if (label) label.style.opacity = cb.checked ? '1' : '0.4';
+  });
+  document.querySelectorAll('#status-filter input').forEach(cb => {
+    if (stats.length) cb.checked = stats.includes(cb.value);
+    const label = cb.closest('label');
+    if (label) label.style.opacity = cb.checked ? '1' : '0.4';
+  });
+}
+
+// ─── Modal ──────────────────────────────────────────────
+const STATUS_LABELS_FULL = { new: 'Новые', applied: 'Отклик', invited: 'Получено приглашение', in_progress: 'В работе', offer: 'Оффер', rejected: 'Отказ' };
+const CAT_LABELS_FULL = { S: 'Идеально', A: 'Отлично', B: 'Хорошо', C: 'Возможно', REJECT: 'Пропустить' };
+const CAT_COLORS_FULL = { S: '#28a745', A: '#007bff', B: '#ffc107', C: '#fd7e14', REJECT: '#dc3545' };
+const CAT_BGS_FULL = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#ffe5cc', REJECT: '#f8d7da' };
+
+function safeParse(val, fallback = []) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val !== 'string') return val;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
+async function openVacancyModal(id) {
+  const overlay = document.getElementById('vacancy-modal');
+  const body = document.getElementById('vacancy-modal-body');
+  body.innerHTML = '<p style="color:#999;">Загрузка...</p>';
+  overlay.style.display = 'flex';
+
+  let v;
+  try {
+    v = await api('/api/vacancies/' + id);
+  } catch(e) {
+    body.innerHTML = '<p style="color:#d32f2f;">Ошибка загрузки: ' + e.message + '</p>';
+    return;
+  }
+  if (!v || !v.id) {
+    body.innerHTML = '<p style="color:#d32f2f;">Вакансия не найдена</p>';
+    return;
+  }
+
+  const ga = v.gate_a_result ? (typeof v.gate_a_result === 'string' ? safeParse(v.gate_a_result, null) : v.gate_a_result) : null;
+  const gb = v.gate_b_result ? (typeof v.gate_b_result === 'string' ? safeParse(v.gate_b_result, null) : v.gate_b_result) : null;
+  const risks = safeParse(v.risks, []);
+  const skills = safeParse(v.skills, []);
+  const tasks = safeParse(v.parsed_tasks, []);
+  const requirements = safeParse(v.parsed_requirements, []);
+  const keyWords = safeParse(v.key_words, []);
+
+  const GATE_A_LABELS = {
+    remote: 'Удалёнка', remote_detail: 'Формат работы',
+    salary: 'Зарплата', salary_detail: 'Детали ЗП',
+    location: 'Локация',
+  };
+
+  let gateHtml = '';
+  if (ga && ga.details) {
+    gateHtml = Object.entries(ga.details).map(([k, val]) =>
+      `<span class="badge badge-${val === 'pass' ? 'S' : 'REJECT'}">${GATE_A_LABELS[k] || k}: ${val === 'pass' ? '✓' : val === 'fail' ? '✗' : val}</span>`
+    ).join(' ') + (ga.reasons && ga.reasons.length ? `<p style="color:#d32f2f;font-size:13px;margin-top:6px;">${ga.reasons.join('; ')}</p>` : '');
+  }
+  if (gb) {
+    const gbOk = gb.passed ? '<span class="badge badge-S">Архетипы: ' + (gb.archetypes || []).join(', ') + '</span>' : '<span class="badge badge-REJECT">✗ Не подошёл</span>';
+    gateHtml += (gateHtml ? ' ' : '') + gbOk;
+  }
+
+  body.innerHTML = `
+    <div style="max-height:80vh;overflow-y:auto;padding-right:8px;">
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div>
+            <h2 style="margin:0 0 4px;font-size:18px;">${v.title || '—'}</h2>
+            <p style="color:#666;margin:0;font-size:13px;">
+              <a href="${v.url || '#'}" target="_blank">${v.company || '—'}</a>
+              ${v.company ? `<a href="/vacancies?company=${encodeURIComponent(v.company)}" style="font-size:11px;color:#007bcc;text-decoration:none;margin-left:6px;">все вакансии →</a>` : ''}
+              ${v.location ? '· ' + v.location : ''}
+              ${v.work_format ? '· ' + v.work_format : ''}
+              ${v.published_at ? '· ' + fmtVacancyDate(v.published_at) : ''}
+            </p>
+            ${v.salary_from ? `<p style="margin:4px 0 0;font-weight:600;font-size:14px;">${v.salary_from.toLocaleString()}${v.salary_to ? ' — ' + v.salary_to.toLocaleString() : ''} ₽</p>` : '<p style="color:#999;font-size:13px;">ЗП не указана</p>'}
+            <p style="margin:4px 0 0;">${v.deleted_at
+              ? `<span class="badge badge-REJECT">Удалена</span>`
+              : `<span class="badge badge-${v.status || 'new'}">${STATUS_LABELS_FULL[v.status] || v.status || 'Новые'}</span>`}
+            <span class="badge" style="background:${v.resume_archetype === '03' ? '#e8daef' : '#d6eaf8'};color:#2c3e50;font-size:11px;margin-left:4px;" id="modal-archetype-badge">Архетип: ${v.resume_archetype || 'не указан'}</span></p>
+          </div>
+          <div style="text-align:center;flex-shrink:0;">
+            <div style="font-size:32px;font-weight:700;color:${CAT_COLORS_FULL[v.category] || '#333'};">${v.score != null ? (v.score === 0 ? '0' : v.score) : '?'}</div>
+            <span class="badge" style="background:${CAT_BGS_FULL[v.category] || '#e2e3e5'};color:${CAT_COLORS_FULL[v.category] || '#383d41'};font-size:14px;">${CAT_LABELS_FULL[v.category] || v.category || '—'}</span>
+            ${v.override_applied ? '<div style="font-size:11px;color:#e94560;margin-top:4px;">Override</div>' : ''}
+          </div>
+        </div>
+      </div>
+
+      ${v.company_data ? `
+      <div class="card" style="margin-bottom:12px;padding:12px;font-size:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Компания</h3>
+        ${v.company_data.website ? '<div><a href="' + v.company_data.website + '" target="_blank" style="color:#007bcc;">' + v.company_data.website + '</a></div>' : ''}
+        ${v.company_data.hh_rating ? '<div>Рейтинг HH: ' + v.company_data.hh_rating.toFixed(1) + (v.company_data.hh_recommend_pct ? ' · рекомендую ' + v.company_data.hh_recommend_pct + '%' : '') + '</div>' : ''}
+        ${v.company_data.revenue ? '<div>Выручка: ' + v.company_data.revenue + '</div>' : ''}
+        ${v.company_data.employees ? '<div>Сотрудники: ' + v.company_data.employees.toLocaleString() + '</div>' : ''}
+      </div>` : ''}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="card" style="padding:12px;">
+          <h3 style="font-size:13px;margin-bottom:6px;">GATE</h3>
+          ${gateHtml || '<p style="color:#999;font-size:12px;">—</p>'}
+        </div>
+        <div class="card" style="padding:12px;">
+          <h3 style="font-size:13px;margin-bottom:6px;">Контакты компании</h3>
+          <div id="company-contacts-${id}" style="font-size:12px;color:#999;">Загрузка...</div>
+        </div>
+        <div class="card" style="padding:12px;">
+          <h3 style="font-size:13px;margin-bottom:6px;">Риски</h3>
+          ${risks.length ? risks.map(r => `<p style="margin:2px 0;font-size:12px;">${r.level || '•'} ${r.text}</p>`).join('') : '<p style="color:#999;font-size:12px;">Нет данных</p>'}
+        </div>
+      </div>
+
+      ${v.hr_contacts ? `
+      <div class="card" style="margin-bottom:12px;padding:12px;font-size:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Контакты HR (HH)</h3>
+        <div style="white-space:pre-wrap;">${v.hr_contacts}</div>
+      </div>` : ''}
+
+      <div class="card" style="margin-bottom:12px;padding:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Ключевые навыки</h3>
+        ${skills.length ? skills.map(s => `<span class="badge badge-A" style="margin:2px;">${s}</span>`).join('') : '<p style="color:#999;font-size:12px;">Не указаны</p>'}
+      </div>
+
+      <div class="card" style="margin-bottom:12px;padding:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Анализ вакансии</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <h4 style="font-size:12px;color:#666;">Задачи</h4>
+            ${tasks.map(t => `<li style="font-size:12px;">${t}</li>`).join('') || '<p style="color:#999;font-size:12px;">Не извлечены</p>'}
+          </div>
+          <div>
+            <h4 style="font-size:12px;color:#666;">Требования</h4>
+            ${requirements.map(r => `<li style="font-size:12px;">${r}</li>`).join('') || '<p style="color:#999;font-size:12px;">Не извлечены</p>'}
+          </div>
+        </div>
+        ${keyWords.length ? `<div style="margin-top:8px;"><h4 style="font-size:12px;color:#666;">Ключевые слова</h4><p style="font-size:12px;">${keyWords.join(', ')}</p></div>` : ''}
+      </div>
+
+      <div class="card" style="margin-bottom:12px;padding:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Мои заметки</h3>
+        <textarea id="modal-notes" style="width:100%;min-height:60px;padding:6px;font-size:12px;border:1px solid #d0d0d0;border-radius:4px;" placeholder="Заметка по вакансии...">${v.notes || ''}</textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+          <button class="btn btn-sm" onclick="saveModalNotes(${id})">Сохранить</button>
+          <span id="modal-notes-status" style="font-size:12px;"></span>
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <h3 style="font-size:13px;margin-bottom:6px;">Действия</h3>
+        ${v.deleted_at ? `
+        <p style="font-size:12px;color:#e74c3c;">✕ Удалена: ${fmtDeleteReason(v.delete_reason)}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <a href="${v.url || '#'}" target="_blank" class="btn btn-sm" style="background:#e8daef;color:#6c3483;font-weight:500;">🌐 На HH</a>
+          <button class="btn btn-sm" style="background:#28a745;" onclick="modalRestoreVacancy(${id})">↩ Вернуть</button>
+          <button class="btn btn-sm" style="background:#c0392b;" onclick="modalHardDeleteVacancy(${id})">× Удалить навсегда</button>
+        </div>
+        ` : `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <a href="${v.url || '#'}" target="_blank" class="btn btn-sm" style="background:#e8daef;color:#6c3483;font-weight:500;" title="Открыть вакансию на сайте HH.ru">🌐 На HH</a>
+          <span style="color:#ccc;font-size:11px;">|</span>
+          <button class="btn btn-sm" style="${!v.status || v.status === 'new' ? 'background:#e2e3e5;color:#383d41;font-weight:600;cursor:default;' : 'display:none;'}" disabled>Новая</button>
+          <button class="btn btn-sm ${v.status === 'applied' ? 'btn-active' : ''}" onclick="modalUpdateStatus(${id}, 'applied')" title="Откликнулся на вакансию">Отклик</button>
+          <button class="btn btn-sm ${v.status === 'invited' ? 'btn-active' : ''}" onclick="modalUpdateStatus(${id}, 'invited')" title="Получено приглашение">Приглашение</button>
+          <button class="btn btn-sm ${v.status === 'in_progress' ? 'btn-active' : ''}" onclick="modalUpdateStatus(${id}, 'in_progress')" title="Прохожу этапы собеседований">В работе</button>
+          <button class="btn btn-sm ${v.status === 'offer' ? 'btn-active' : ''}" onclick="modalUpdateStatus(${id}, 'offer')" title="Получен оффер">Оффер</button>
+          <button class="btn btn-sm ${v.status === 'rejected' ? 'btn-active' : ''}" onclick="modalUpdateStatus(${id}, 'rejected')" title="Отказ">Отказ</button>
+          <span style="color:#ccc;font-size:11px;">|</span>
+          <button class="btn btn-sm" style="background:#c0392b;" onclick="showModalTrashModal(${id})">Удалить</button>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:#888;">
+          Текущий статус: <strong>${STATUS_LABELS_FULL[v.status] || v.status || 'Новые'}</strong>
+          ${v.created_at ? '· создана ' + v.created_at.slice(0, 10) : ''}
+        </div>
+        <div style="margin-top:4px;font-size:10px;color:#aaa;line-height:1.4;">
+          <strong>Статусы</strong>: Отклик → Приглашение → В работе → Оффер. <strong>Отказ</strong> = в любом месте. <strong>Удалить</strong> = скрыть с причиной (можно вернуть).
+        </div>
+        `}
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;font-size:12px;">
+          <span>Архетип:</span>
+          <select id="modal-archetype" class="input" style="width:auto;font-size:12px;padding:2px 6px;">
+            <option value="01" ${v.resume_archetype === '01' ? 'selected' : ''}>01 — Enterprise PM</option>
+            <option value="03" ${v.resume_archetype === '03' ? 'selected' : ''}>03 — Product PM-PO</option>
+          </select>
+          <button class="btn btn-sm" onclick="saveModalArchetype(${id})">Сохранить</button>
+          <span id="modal-archetype-msg" style="font-size:11px;color:#888;"></span>
+        </div>
+        <span id="modal-status-msg" style="margin-left:6px;font-size:12px;"></span>
+      </div>
+    </div>
+  `;
+  // Load company contacts
+  if (v.company) {
+    api('/api/vacancies/' + id + '/contacts').then(contacts => {
+      const el = document.getElementById('company-contacts-' + id);
+      if (!el) return;
+      if (contacts.items && contacts.items.length) {
+        el.innerHTML = contacts.items.map(c =>
+          `<div style="padding:2px 0;display:flex;gap:4px;align-items:center;">
+            <a href="/contacts?contact_id=${c.id}" style="color:inherit;text-decoration:underline;cursor:pointer;">${c.name}</a>
+            ${c.role ? '<span style="color:#888;">· ' + c.role + '</span>' : ''}
+            ${c.telegram ? '<span style="color:#0088cc;font-size:11px;">✈' + c.telegram + '</span>' : ''}
+            ${c.email ? '<span style="font-size:11px;">✉' + c.email + '</span>' : ''}
+          </div>`
+        ).join('');
+      } else {
+        el.innerHTML = '<span style="color:#999;">Нет контактов</span>';
+      }
+    }).catch(() => {
+      const el = document.getElementById('company-contacts-' + id);
+      if (el) el.innerHTML = '<span style="color:#999;">Ошибка загрузки</span>';
+    });
+  } else {
+    const el = document.getElementById('company-contacts-' + id);
+    if (el) el.innerHTML = '<span style="color:#999;">Компания не указана</span>';
+  }
+}
+
+function closeVacancyModal() {
+  document.getElementById('vacancy-modal').style.display = 'none';
+}
+
+async function saveModalNotes(id) {
+  const notes = document.getElementById('modal-notes').value;
+  await api('/api/vacancies/' + id + '/notes', {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+  const el = document.getElementById('modal-notes-status');
+  el.textContent = 'Сохранено';
+  el.style.color = '#28a745';
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+async function saveModalArchetype(id) {
+  const archetype = document.getElementById('modal-archetype').value;
+  const msg = document.getElementById('modal-archetype-msg');
+  msg.textContent = 'Сохранение...';
+  const res = await api('/api/vacancies/' + id + '/archetype', { method: 'PUT', body: JSON.stringify({ archetype }) });
+  if (res.ok) {
+    msg.textContent = '✓';
+    msg.style.color = '#28a745';
+    // Update badge in table and modal
+    const badge = document.getElementById('modal-archetype-badge');
+    if (badge) badge.textContent = 'Архетип: ' + archetype;
+    const rowBadge = document.getElementById(`vacancy-row-${id}-archetype`);
+    if (rowBadge) rowBadge.textContent = archetype;
+  } else {
+    msg.textContent = 'Ошибка';
+    msg.style.color = '#d32f2f';
+  }
+  setTimeout(() => msg.textContent = '', 2000);
+}
+
+async function modalUpdateStatus(id, status) {
+  await api('/api/vacancies/' + id + '/status', {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  });
+  closeVacancyModal();
+  filterVacancies();
+}
+
+// ─── Modal Trash ─────────────────────────────────────────────
+const MODAL_TRASH_REASONS = [
+  'Зарплата ниже ожидаемой',
+  'Локация не подходит',
+  'Не мой профиль/домен',
+  'Дубль вакансии',
+  'Не согласен с условиями',
+  'Работодатель закрыл вакансию',
+  'Другое',
+];
+
+function showModalTrashModal(id) {
+  const reasonsHtml = MODAL_TRASH_REASONS.map((r) => {
+    return `<label style="display:block;padding:6px;cursor:pointer;">
+      <input type="checkbox" name="modal-trash-reason" value="${r}" style="margin-right:6px;"> ${r}
+    </label>`;
+  }).join('');
+  const customHtml = `<div style="margin-top:8px;"><input id="modal-trash-other" style="width:100%;padding:6px;font-size:12px;border-radius:4px;border:1px solid #555;background:#2d2d3e;color:#fff;" placeholder="Другое (можно дописать)..." maxlength="200"></div>`;
+  const overlay = document.createElement('div');
+  overlay.className = 'trash-modal-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#1e1e2e;padding:24px;border-radius:12px;min-width:350px;color:#fff;">
+      <h3 style="margin:0 0 16px;color:#fff;">Причины удаления (можно выбрать несколько)</h3>
+      ${reasonsHtml}
+      ${customHtml}
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn btn-sm" style="background:#c0392b;" onclick="modalTrashVacancy(${id})">Удалить</button>
+        <button class="btn btn-sm" onclick="this.closest('.trash-modal-overlay').remove()">Отмена</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function modalTrashVacancy(id) {
+  const checked = document.querySelectorAll('input[name="modal-trash-reason"]:checked');
+  const reasons = Array.from(checked).map(cb => cb.value);
+  const other = document.getElementById('modal-trash-other');
+  if (other && other.value.trim()) reasons.push(other.value.trim());
+  if (reasons.length === 0) { alert('Выберите хотя бы одну причину'); return; }
+  await api('/api/vacancies/' + id + '/trash', {
+    method: 'POST',
+    body: JSON.stringify({ reasons }),
+  });
+  document.querySelectorAll('.trash-modal-overlay').forEach(el => el.remove());
+  closeVacancyModal();
+  filterVacancies();
+}
+
+async function modalRestoreVacancy(id) {
+  await api('/api/vacancies/' + id + '/restore', { method: 'POST' });
+  closeVacancyModal();
+  filterVacancies();
+}
+
+async function modalHardDeleteVacancy(id) {
+  if (!confirm('Удалить навсегда? Восстановление будет невозможно.')) return;
+  await api('/api/vacancies/' + id, { method: 'DELETE' });
+  closeVacancyModal();
+  filterVacancies();
+}
+</script>
+
+<style>
+.sort-indicator { font-size:11px;margin-left:3px;color:#888; }
+.sort-indicator.active { color:#e94560; }
+</style>
+
+<div id="vacancy-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:flex-start;padding:60px 20px;overflow-y:auto;" onclick="if(event.target===this)closeVacancyModal()">
+  <div style="background:#f0f2f5;border-radius:12px;padding:20px;max-width:800px;width:100%;position:relative;box-shadow:0 4px 20px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+    <button onclick="closeVacancyModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#888;line-height:1;">&times;</button>
+    <div id="vacancy-modal-body"></div>
+  </div>
+</div>
 {% endblock %}

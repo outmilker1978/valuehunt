@@ -40,6 +40,7 @@ body {
   transition: color 0.2s;
 }
 .nav-links a:hover { color: white; }
+.nav-links a.nav-link-active { color: white; font-weight: 600; border-bottom: 2px solid #e94560; }
 
 /* Main */
 .main {
@@ -133,6 +134,10 @@ select.input { max-width: 280px; }
   padding: 4px 12px;
   font-size: 12px;
 }
+.btn-active {
+  background: #1a1a2e !important;
+  color: white !important;
+}
 
 /* Tables */
 .table {
@@ -162,6 +167,17 @@ select.input { max-width: 280px; }
 .table tr:last-child td { border-bottom: none; }
 
 /* Badge */
+/* Sticky filter bar */
+.sticky-filter {
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+  background: #f0f2f5;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 16px;
+}
+
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -169,13 +185,20 @@ select.input { max-width: 280px; }
   font-size: 12px;
   font-weight: 600;
 }
-.badge-A { background: #d4edda; color: #155724; }
-.badge-Б { background: #cce5ff; color: #004085; }
-.badge-В { background: #fff3cd; color: #856404; }
-.badge-C { background: #fff3cd; color: #856404; }
-.badge-мимо { background: #f8d7da; color: #721c24; }
-.badge-new { background: #e2e3e5; color: #383d41; }
-.badge-responded { background: #cce5ff; color: #004085; }
+.badge-S { background: #d4edda; color: #155724; }
+.badge-A { background: #cce5ff; color: #004085; }
+.badge-B { background: #fff3cd; color: #856404; }
+.badge-C { background: #ffe5cc; color: #a04000; }
+.badge-REJECT { background: #f8d7da; color: #721c24; }
+.badge-new { background: #f1f3f5; color: #adb5bd; }
+.badge-applied { background: #cce5ff; color: #004085; }
+.badge-follow_up { background: #d1ecf1; color: #0c5460; }
+.badge-call { background: #fff3cd; color: #856404; }
+.badge-in_progress { background: #ffe5cc; color: #a04000; }
+.badge-offer { background: #d4edda; color: #155724; }
+.badge-rejected { background: #f8d7da; color: #721c24; }
+.badge-archived { background: #e2e3e5; color: #6c757d; }
+.badge-closed { background: #ced4da; color: #495057; }
 
 /* Matrix builder */
 .matrix-group {

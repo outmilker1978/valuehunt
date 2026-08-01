@@ -4,23 +4,575 @@
 {% block content %}
 <h1>Дашборд</h1>
 
+<div class="sticky-filter" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#fff;padding:8px 0;border-bottom:1px solid #eee;">
+  <label>Профиль:</label>
+  <select id="profile-filter" class="input" style="width:auto;min-width:160px;" onchange="onFilterChange()">
+    <option value="">Все профили</option>
+  </select>
+  <span style="width:1px;height:24px;background:#ddd;margin:0 4px;"></span>
+  <label style="font-size:12px;">За период:</label>
+  <button class="btn btn-sm btn-active" onclick="setDateRange('1')" id="dr-1">Сутки</button>
+  <button class="btn btn-sm" onclick="setDateRange('7')" id="dr-7">7 дней</button>
+  <button class="btn btn-sm" onclick="setDateRange('14')" id="dr-14">14 дней</button>
+  <button class="btn btn-sm" onclick="setDateRange('30')" id="dr-30">30 дней</button>
+  <button class="btn btn-sm" onclick="setDateRange('0')" id="dr-0">Всё время</button>
+  <span style="margin-left:4px;">
+    <input type="date" id="dr-date-from" class="input" style="width:130px;font-size:11px;" onchange="setDateRange('custom')">
+    <input type="date" id="dr-date-to" class="input" style="width:130px;font-size:11px;" onchange="setDateRange('custom')">
+  </span>
+  <button onclick="runScan()" class="btn" style="flex-shrink:0;">Сканировать</button>
+  <button onclick="importRetro()" class="btn" style="flex-shrink:0;background:#6f42c1;color:#fff;" title="Импорт данных из Excel (ретро-аналитика)">Импорт ретро</button>
+  <button onclick="cleanAndRescan()" class="btn" style="flex-shrink:0;background:#dc3545;color:#fff;" title="Удалить все вакансии и запустить сканирование заново">Очистить</button>
+  <span id="scan-result" style="font-size:14px;"></span>
+  <span id="scan-progress" style="font-size:12px;color:#888;margin-left:auto;"></span>
+</div>
+
 <div class="stats-grid">
-  <div class="card">
-    <h3>Всего вакансий</h3>
-    <div class="stat-number" id="stat-total">—</div>
+  <div class="card" style="text-align:center;">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;">Всего вакансий</div>
+    <div class="stat-number" id="stat-total" style="font-size:36px;">—</div>
   </div>
-  <div class="card">
-    <h3>По статусам</h3>
-    <pre class="stat-pre" id="stat-status">—</pre>
+  <div class="card" style="text-align:center;">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;">Компаний</div>
+    <div class="stat-number" id="stat-companies" style="font-size:36px;">—</div>
   </div>
-  <div class="card">
-    <h3>По категориям</h3>
-    <pre class="stat-pre" id="stat-category">—</pre>
+  <div class="card" style="text-align:center;">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;">Средний балл</div>
+    <div class="stat-number" id="stat-avg-score" style="font-size:36px;">—</div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;">S + A категории</div>
+    <div class="stat-number" id="stat-top" style="font-size:36px;">—</div>
+    <div style="font-size:11px;color:#888;">S + A = Идеально + Отлично</div>
+    <div style="margin-top:4px;"><a href="/vacancies?category=S" style="font-size:11px;">Идеально S</a> · <a href="/vacancies?category=A" style="font-size:11px;">Отлично A</a></div>
   </div>
 </div>
 
-<div style="display:flex;gap:8px;margin-top:16px;align-items:center;">
-  <button onclick="runScan()" class="btn">Запустить сканирование</button>
-  <span id="scan-result" style="font-size: 14px;"></span>
+<div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+  <!-- Donut: Категории скоринга -->
+  <div class="card" style="flex:1;min-width:300px;">
+    <h3>Категории скоринга <span style="font-size:11px;color:#888;font-weight:normal;">— все вакансии в БД</span></h3>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <svg id="donut-svg" width="180" height="180" viewBox="0 0 180 180"></svg>
+      <div id="donut-legend"></div>
+    </div>
+  </div>
+
+  <!-- Статусы — Воронка -->
+  <div class="card" style="flex:1;min-width:280px;">
+    <h3>Воронка отклика</h3>
+    <div style="font-size:11px;color:#888;margin-bottom:8px;">
+      Этапы: Новые → Отклик → Созвон → Принято / Отказ / В архив
+    </div>
+    <div id="funnel-list"></div>
+  </div>
 </div>
+
+<!-- Динамика по дате публикации -->
+<div class="card" style="margin-top:16px;">
+  <h3>Динамика по дате публикации</h3>
+  <div style="font-size:11px;color:#888;margin-bottom:8px;">
+    График показывает даты публикации вакансий на hh.ru (не даты сканирования). Выходные и праздники — без новых вакансий.
+  </div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:13px;">
+    <label><input type="radio" name="dc-mode" value="total" checked onchange="refreshDateChart()"> Всего</label>
+    <label><input type="radio" name="dc-mode" value="category" onchange="refreshDateChart()"> По категориям</label>
+    <label><input type="radio" name="dc-mode" value="status" onchange="refreshDateChart()"> По статусам</label>
+  </div>
+  <div style="position:relative;">
+    <svg id="date-chart-svg" width="100%" height="220" viewBox="0 0 800 220" style="display:block;"></svg>
+    <div id="chart-tooltip" style="position:absolute;background:rgba(33,37,41,0.92);color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;pointer-events:none;z-index:100;display:none;max-width:300px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,0.2);"></div>
+  </div>
+  <div id="dc-legend" style="font-size:12px;margin-top:4px;"></div>
+</div>
+
+<!-- Новые за период (использует глобальный диапазон дат) -->
+<div class="card" style="margin-top:16px;">
+  <h3>Новые за период</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div id="timeline-stats" style="font-size:14px;line-height:1.8;"></div>
+  </div>
+  <svg id="timeline-chart-svg" width="100%" height="180" viewBox="0 0 800 180" style="display:block;margin-top:8px;"></svg>
+</div>
+
+<script>
+const CATS = ['S','A','B','C','REJECT'];
+const CAT_LABELS = { S: 'Идеально', A: 'Отлично', B: 'Хорошо', C: 'Возможно', REJECT: 'Пропустить' };
+const CAT_FULL = { S: 'Идеально (8.0+)', A: 'Отлично (7.0+)', B: 'Хорошо (6.0+)', C: 'Возможно (5.0+)', REJECT: 'Пропустить (<5.0)' };
+const CAT_COLORS = { S: '#28a745', A: '#007bff', B: '#ffc107', C: '#fd7e14', REJECT: '#dc3545' };
+const CAT_BG = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#ffe5cc', REJECT: '#f8d7da' };
+const STATUS_LABELS = { new: 'Новые', applied: 'Отклик', invited: 'Приглашение', in_progress: 'В работе', offer: 'Оффер', rejected: 'Отказ' };
+
+// ─── Global state ────────────────────────────────
+let gVacancies = [];
+let gDateMode = '7';
+let dcEntries = [];
+
+// ─── Chart tooltip ──────────────────────────────
+const CT = document.getElementById('chart-tooltip');
+function ttShow(e, html) {
+  if (!CT) return;
+  CT.innerHTML = html;
+  CT.style.display = 'block';
+  const r = document.getElementById('date-chart-svg').getBoundingClientRect();
+  let x = e.clientX - r.left + 12;
+  let y = e.clientY - r.top - 10;
+  if (x + 300 > r.width) x = e.clientX - r.left - 300;
+  if (y < 0) y = e.clientY - r.top + 20;
+  CT.style.left = x + 'px';
+  CT.style.top = y + 'px';
+}
+function ttHide() { if (CT) CT.style.display = 'none'; }
+
+// ─── Init ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  if (document.getElementById('tooltip-style')) document.getElementById('tooltip-style').remove();
+  await loadProfilesFilter();
+  await fetchAndRender();
+});
+
+function getSelectedProfileId() {
+  const v = document.getElementById('profile-filter').value;
+  return v ? parseInt(v) : null;
+}
+
+async function loadProfilesFilter() {
+  try {
+    const data = await api('/api/profiles');
+    const sel = document.getElementById('profile-filter');
+    if (data.items && data.items.length) {
+      sel.innerHTML = '<option value="">Все профили</option>' +
+        data.items.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+  } catch(e) {}
+}
+
+function onFilterChange() {
+  fetchAndRender();
+}
+
+async function fetchAndRender() {
+  const pid = getSelectedProfileId();
+  const url = pid ? '/api/vacancies?profile_id=' + pid : '/api/vacancies';
+  const data = await api(url);
+  gVacancies = data.items || [];
+  renderAll();
+}
+
+function filterByDateRange(items) {
+  const mode = gDateMode;
+  const now = new Date();
+  const d1 = document.getElementById('dr-date-from')?.value;
+  const d2 = document.getElementById('dr-date-to')?.value;
+  return items.filter(x => {
+    const d = x.created_at ? new Date(x.created_at) : (x.published_at ? parseDateHH(x.published_at) : null);
+    if (!d) return false;
+    if (mode === 'custom') {
+      const from = d1 ? new Date(d1 + 'T00:00:00') : null;
+      const to = d2 ? new Date(d2 + 'T23:59:59') : null;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    }
+    const days = parseInt(mode) || 0;
+    if (days > 0 && (now - d) / 86400000 > days) return false;
+    return true;
+  });
+}
+
+function setDateRange(mode) {
+  gDateMode = mode;
+  ['1','7','14','30','0'].forEach(p => {
+    const btn = document.getElementById('dr-' + (p || 0));
+    if (btn) btn.className = 'btn btn-sm' + (p === mode ? ' btn-active' : '');
+  });
+  renderAll();
+}
+
+function renderAll() {
+  const items = filterByDateRange(gVacancies);
+  renderStats(items);
+  renderFunnel(items);
+  renderDonutFromItems(items);
+  refreshDateChart(items);
+  renderTimeline(items);
+}
+
+function renderStats(items) {
+  document.getElementById('stat-total').textContent = items.length;
+  const companies = new Set(items.map(x => x.company).filter(Boolean));
+  document.getElementById('stat-companies').textContent = companies.size || 0;
+  const scores = items.map(x => x.score).filter(s => s != null);
+  const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+  document.getElementById('stat-avg-score').textContent = scores.length ? avg.toFixed(2) : '—';
+  document.getElementById('stat-avg-score').style.color = avg >= 7 ? '#28a745' : avg >= 5 ? '#ffc107' : '#dc3545';
+  const byCat = {};
+  items.forEach(x => { const cat = x.category || 'REJECT'; byCat[cat] = (byCat[cat] || 0) + 1; });
+  const topCount = (byCat['S'] || 0) + (byCat['A'] || 0);
+  document.getElementById('stat-top').textContent = topCount;
+  document.getElementById('stat-top').style.color = topCount > 0 ? '#28a745' : '#999';
+}
+
+function renderFunnel(items) {
+  const byStatus = {};
+  items.forEach(x => { const s = x.status || 'new'; byStatus[s] = (byStatus[s] || 0) + 1; });
+  const pid = getSelectedProfileId();
+  const pidParam = pid ? '&profile_id=' + pid : '';
+  const funnelOrder = ['new','applied','invited','in_progress','offer','rejected'];
+  const total = Object.values(byStatus).reduce((a,b)=>a+b, 0);
+  const max = Math.max(...funnelOrder.map(k => byStatus[k] || 0), 1);
+  const funnelColors = { new:'#adb5bd', applied:'#007bff', invited:'#17a2b8', in_progress:'#fd7e14', offer:'#28a745', rejected:'#dc3545' };
+  document.getElementById('funnel-list').innerHTML = funnelOrder.map(k => {
+    const count = byStatus[k] || 0;
+    const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
+    const barW = (count / max) * 100;
+    return `<div style="margin:6px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+        <a href="/vacancies?status=${k}${pidParam}" style="color:#1a1a2e;text-decoration:none;">${STATUS_LABELS[k] || k}</a>
+        <span><a href="/vacancies?status=${k}${pidParam}" style="font-weight:600;color:#007bff;text-decoration:none;">${count}</a> <span style="color:#888;font-size:11px;">${pct}%</span></span>
+      </div>
+      <div style="height:6px;background:#eee;border-radius:3px;overflow:hidden;">
+        <div style="width:${barW}%;height:100%;background:${funnelColors[k] || '#adb5bd'};border-radius:3px;"></div>
+      </div>
+    </div>`;
+  }).join('') + (total ? '' : '<div style="margin-top:6px;font-size:11px;color:#999;">Нет данных за выбранный период</div>');
+}
+
+function renderDonutFromItems(items) {
+  const byCat = {};
+  items.forEach(x => { const cat = x.category || 'REJECT'; byCat[cat] = (byCat[cat] || 0) + 1; });
+  const total = items.length;
+  drawDonut(byCat, total);
+}
+
+// ─── Date Chart (uses filtered data from gVacancies) ──
+function refreshDateChart(items) {
+  if (!items) items = filterByDateRange(gVacancies);
+  // Build day buckets
+  const dayBuckets = {};
+  items.forEach(x => {
+    const d = x.created_at ? new Date(x.created_at) : (x.published_at ? parseDateHH(x.published_at) : null);
+    if (!d) return;
+    const key = d.toISOString().slice(0, 10);
+    if (!dayBuckets[key]) dayBuckets[key] = [];
+    dayBuckets[key].push(x);
+  });
+  const sortedKeys = Object.keys(dayBuckets).sort();
+  dcEntries = sortedKeys.map(key => ({ date: key, items: dayBuckets[key] }));
+  const mode = document.querySelector('input[name="dc-mode"]:checked')?.value || 'total';
+  if (!dcEntries.length) {
+    document.getElementById('date-chart-svg').innerHTML = '<text x="400" y="110" text-anchor="middle" fill="#999" font-size="14">Нет данных</text>';
+    return;
+  }
+  drawDateChart(mode);
+}
+
+function drawDonut(byCat, total) {
+  const svg = document.getElementById('donut-svg');
+  const cx = 90, cy = 90, r = 70, ir = 45;
+  const entries = CATS.map(k => [k, byCat[k] || 0]);
+  if (!total) {
+    svg.innerHTML = '<text x="90" y="95" text-anchor="middle" fill="#999" font-size="14">Нет данных</text>';
+  } else {
+    let startAngle = -Math.PI / 2;
+    let paths = '';
+    entries.forEach(([k, count]) => {
+      if (!count) return;
+      const angle = (count / total) * 2 * Math.PI;
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(startAngle + angle);
+      const y2 = cy + r * Math.sin(startAngle + angle);
+      const large = angle > Math.PI ? 1 : 0;
+      paths += `<path d="M${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2} L${cx + ir * Math.cos(startAngle + angle)} ${cy + ir * Math.sin(startAngle + angle)} A${ir} ${ir} 0 ${large} 0 ${cx + ir * Math.cos(startAngle)} ${cy + ir * Math.sin(startAngle)} Z" fill="${CAT_COLORS[k]}" stroke="#fff" stroke-width="1" style="cursor:pointer;transition:opacity 0.15s;" onmousemove="ttShow(event,'<b>${CAT_LABELS[k]||k}</b><br>${count} вакансий (${((count/total)*100).toFixed(1)}%)')" onmouseover="this.setAttribute('opacity','0.8')" onmouseout="this.setAttribute('opacity','1');ttHide()"/>`;
+      startAngle += angle;
+    });
+    svg.innerHTML = paths +
+      `<text x="${cx}" y="${cy - 5}" text-anchor="middle" font-size="22" font-weight="700" fill="#333">${total}</text>` +
+      `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="10" fill="#888">всего</text>`;
+  }
+
+  const pid = getSelectedProfileId();
+  const pidParam = pid ? '&profile_id=' + pid : '';
+  // Legend
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = entries.map(([k, count]) => {
+    const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
+    return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;cursor:pointer;" onmousemove="ttShow(event,'<b>${CAT_LABELS[k]||k}</b><br>${count} вакансий (${pct}%)')" onmouseout="ttHide()">
+      <span style="width:12px;height:12px;border-radius:3px;background:${CAT_COLORS[k]};display:inline-block;"></span>
+      <a href="/vacancies?category=${k}${pidParam}" style="flex:1;color:#1a1a2e;text-decoration:none;">${CAT_FULL[k] || k}</a>
+      <span style="font-weight:600;">${count}</span>
+      <span style="color:#888;font-size:11px;">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Interactive legend ─────────────────────────
+let gHiddenKeys = new Set();
+
+function toggleLegendKey(key, mode) {
+  if (gHiddenKeys.has(key)) gHiddenKeys.delete(key);
+  else gHiddenKeys.add(key);
+  // Re-render with current dcEntries
+  drawDateChart(mode || document.querySelector('input[name="dc-mode"]:checked')?.value || 'total');
+}
+
+function drawDateChart(mode) {
+  const svg = document.getElementById('date-chart-svg');
+  const w = 800, h = 220, pad = { top: 20, bottom: 35, left: 45, right: 20 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  const entries = dcEntries;
+  const maxDays = entries.length;
+  const step = cw / maxDays;
+  const barW = Math.min(step * 0.7, 28);
+
+  // Compute segments per day
+  if (mode === 'total') {
+    const totalMax = Math.max(...entries.map(e => e.items.length), 1);
+    const values = entries.map(e => e.items.length);
+    const trend = values.map((v, i) => {
+      const slice = values.slice(Math.max(0, i - 1), i + 2);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+    let bars = '';
+    entries.forEach((e, i) => {
+      const slotCenter = pad.left + i * step + step / 2;
+      const count = e.items.length;
+      const x = pad.left + i * step + (step - barW) / 2;
+      const bh = (count / totalMax) * ch;
+      const y = pad.top + ch - bh;
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="3" fill="#007bff" opacity="0.85" stroke="#0056b3" stroke-width="0.5" style="cursor:pointer;" onmousemove="ttShow(event,'<b>${e.date}</b><br>Вакансий: ${count}<br>Тренд (3д): ${trend[i].toFixed(1)}')" onmouseout="ttHide()"></rect>`;
+      bars += `<text x="${slotCenter}" y="${y - 4}" text-anchor="middle" font-size="9" fill="#333" font-weight="600">${count}</text>`;
+    });
+    bars += dateChartAxes(totalMax, entries, step, barW, pad, w, h, ch);
+    bars += drawTrendLine(entries, totalMax, step, pad, ch, 'всего');
+    svg.innerHTML = bars;
+    document.getElementById('dc-legend').innerHTML =
+      '<span style="display:inline-block;margin-right:12px;font-size:11px;">' +
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#007bff;margin-right:3px;vertical-align:middle;"></span>' +
+        'Вакансий за день' +
+      '</span>' +
+      '<span style="display:inline-block;font-size:11px;">' +
+        '<span style="display:inline-block;width:16px;height:2px;background:#ff6b6b;margin-right:3px;vertical-align:middle;"></span>' +
+        'Тренд (3-дневное ССП)' +
+      '</span>';
+  } else if (mode === 'category') {
+    const catKeys = ['S','A','B','C','REJECT'];
+    const daySegs = entries.map(e => {
+      const map = {}; let sum = 0;
+      catKeys.forEach(k => { map[k] = 0; });
+      e.items.forEach(x => { const cat = x.category || 'REJECT'; map[cat] = (map[cat]||0)+1; sum++; });
+      return { ...map, _total: sum };
+    });
+    const maxSum = Math.max(...daySegs.map(d => d._total), 1);
+    drawStackedBars(svg, entries, daySegs, catKeys, maxSum, step, barW, pad, w, h, ch, mode);
+  } else if (mode === 'status') {
+    const statKeys = ['new','applied','invited','in_progress','offer','rejected'];
+    const daySegs = entries.map(e => {
+      const map = {}; let sum = 0;
+      statKeys.forEach(k => { map[k] = 0; });
+      e.items.forEach(x => { const s = x.status || 'new'; map[s] = (map[s]||0)+1; sum++; });
+      return { ...map, _total: sum };
+    });
+    const maxSum = Math.max(...daySegs.map(d => d._total), 1);
+    const statColors = { new:'#adb5bd', applied:'#007bff', invited:'#17a2b8', in_progress:'#fd7e14', offer:'#28a745', rejected:'#dc3545' };
+    drawStackedBars(svg, entries, daySegs, statKeys, maxSum, step, barW, pad, w, h, ch, mode, statColors);
+  }
+}
+
+function drawStackedBars(svg, entries, daySegs, keys, maxSum, step, barW, pad, w, h, ch, mode, colors) {
+  const colorMap = colors || { S:'#28a745', A:'#007bff', B:'#ffc107', C:'#fd7e14', REJECT:'#dc3545' };
+  const labelMap = { S:'Идеально', A:'Отлично', B:'Хорошо', C:'Возможно', REJECT:'Пропустить',
+    new:'Новые', applied:'Отклик', invited:'Приглашение', in_progress:'В работе', offer:'Оффер', rejected:'Отказ' };
+
+  // Filter hidden keys
+  const visibleKeys = keys.filter(k => !gHiddenKeys.has(k));
+  const visibleDaySegs = visibleKeys.length === keys.length ? daySegs : daySegs.map(d => {
+    const o = { _total: 0 };
+    visibleKeys.forEach(k => { o[k] = d[k] || 0; o._total += o[k]; });
+    return o;
+  });
+  const visibleMaxSum = Math.max(...visibleDaySegs.map(d => d._total), 1);
+  const vkTrend = {};
+  visibleKeys.forEach(k => {
+    const vals = visibleDaySegs.map(d => d[k] || 0);
+    vkTrend[k] = vals.map((v, i) => {
+      const slice = vals.slice(Math.max(0, i - 1), i + 2);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+  });
+  let bars = '';
+  entries.forEach((e, i) => {
+    const x = pad.left + i * step + (step - barW) / 2;
+    const seg = visibleDaySegs[i];
+    let yBottom = pad.top + ch;
+    const lines = [`<b>${e.date}</b>`];
+    visibleKeys.forEach(k => {
+      if (!seg[k]) return;
+      lines.push(`${labelMap[k]||k}: ${seg[k]} (тренд: ${vkTrend[k][i].toFixed(1)})`);
+    });
+    lines.push(`<b>Всего: ${seg._total || 0}</b>`);
+    const tipHtml = lines.join('<br>');
+    visibleKeys.forEach(k => {
+      if (!seg[k]) return;
+      const hSeg = (seg[k] / visibleMaxSum) * ch;
+      const y = yBottom - hSeg;
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${hSeg}" rx="1" fill="${colorMap[k]}" opacity="0.88" stroke="#fff" stroke-width="0.5" style="cursor:pointer;" onmousemove="ttShow(event,'${tipHtml}')" onmouseout="ttHide()"></rect>`;
+      yBottom = y;
+    });
+    if (seg._total) {
+      bars += `<text x="${pad.left + i * step + step / 2}" y="${pad.top + ch - (seg._total / visibleMaxSum) * ch - 4}" text-anchor="middle" font-size="9" fill="#333" font-weight="600">${seg._total}</text>`;
+    }
+  });
+  bars += dateChartAxes(visibleMaxSum, entries, step, barW, pad, w, h, ch);
+  // Trend lines for visible keys only
+  visibleKeys.forEach(k => {
+    const trendData = entries.map((e, i) => ({ date: e.date, val: visibleDaySegs[i][k] || 0 }));
+    const trendLabel = labelMap[k] || k;
+    const vals = trendData.map(d => d.val);
+    const ma = vals.map((v, i) => {
+      const slice = vals.slice(Math.max(0, i - 1), i + 2);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+    if (ma.every(v => v === 0)) return;
+    const tid = 'tl-' + k.replace(/[^a-z0-9]/gi,'');
+    const pts = entries.map((e, i) => {
+      const x = pad.left + i * step + step / 2;
+      const y = pad.top + ch - (ma[i] / visibleMaxSum) * ch;
+      return `${x},${y}`;
+    }).join(' ');
+    const lastX = pad.left + (entries.length - 1) * step + step / 2;
+    const lastY = pad.top + ch - (ma[ma.length - 1] / visibleMaxSum) * ch;
+    const wide = `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="24" 
+      onmousemove="ttShow(event,'<b>${trendLabel}</b><br>Тренд (3д ССП)')" 
+      onmouseout="ttHide()" style="cursor:pointer;"/>`;
+    const dots = entries.map((e, i) => {
+      const cx = pad.left + i * step + step / 2;
+      const cy = pad.top + ch - (ma[i] / visibleMaxSum) * ch;
+      return `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${colorMap[k]}" opacity="0.5" pointer-events="none"/>
+        <circle cx="${cx}" cy="${cy}" r="10" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,0)" stroke-width="2" 
+          onmousemove="ttShow(event,'<b>${e.date}</b><br>${trendLabel}: ${ma[i].toFixed(1)}<br>Тренд (3д ССП)')" 
+          onmouseout="ttHide()" style="cursor:pointer;"/>`;
+    }).join('');
+    bars += `<g id="${tid}" onmouseover="var l=document.getElementById('${tid}').querySelector('polyline.vis');if(l){l.setAttribute('stroke-width','3');l.setAttribute('opacity','1')}" onmouseout="var l=document.getElementById('${tid}').querySelector('polyline.vis');if(l){l.setAttribute('stroke-width','1.5');l.setAttribute('opacity','0.7')}">
+      ${wide}
+      <polyline class="vis" points="${pts}" fill="none" stroke="${colorMap[k]}" stroke-width="1.5" stroke-linejoin="round" opacity="0.7" pointer-events="none"/>
+      ${dots}
+      <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="${colorMap[k]}" opacity="0.8" pointer-events="none"/>
+    </g>`;
+  });
+  svg.innerHTML = bars;
+  // Interactive legend with counts + toggle
+  const legendEl = document.getElementById('dc-legend');
+  if (legendEl) {
+    legendEl.innerHTML = keys.map(k => {
+      const total = daySegs.reduce((sum, d) => sum + (d[k] || 0), 0);
+      const hidden = gHiddenKeys.has(k);
+      return `<span style="display:inline-block;margin-right:16px;font-size:11px;cursor:pointer;transition:opacity 0.15s;${hidden ? 'opacity:0.35;' : ''}" onclick="toggleLegendKey('${k}','${mode}')" title="${hidden ? 'Показать' : 'Скрыть'} ${labelMap[k]||k}">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colorMap[k]};margin-right:3px;vertical-align:middle;"></span>
+        ${labelMap[k]||k} <strong>${total}</strong>
+        ${hidden ? '<span style="color:#999;font-size:9px;">✕</span>' : ''}
+      </span>`;
+    }).join('') + '<br><span style="font-size:10px;color:#888;">Кликните по легенде, чтобы скрыть/показать категорию. Линии — тренд (3-дневное ССП)</span>';
+  }
+}
+
+function drawTrendLine(entries, maxVal, step, pad, ch, label) {
+  if (entries.length < 3) return '';
+  const values = entries.map(e => e._total != null ? e._total : e.items.length);
+  const ma = values.map((v, i) => {
+    const slice = values.slice(Math.max(0, i - 1), i + 2);
+    return slice.reduce((a, b) => a + b, 0) / slice.length;
+  });
+  const points = entries.map((e, i) => {
+    const x = pad.left + i * step + step / 2;
+    const y = pad.top + ch - (ma[i] / maxVal) * ch;
+    return `${x},${y}`;
+  }).join(' ');
+  const lastX = pad.left + (entries.length - 1) * step + step / 2;
+  const lastY = pad.top + ch - (ma[ma.length - 1] / maxVal) * ch;
+  const dots = entries.map((e, i) => {
+    const cx = pad.left + i * step + step / 2;
+    const cy = pad.top + ch - (ma[i] / maxVal) * ch;
+    return `<circle cx="${cx}" cy="${cy}" r="2" fill="#ff6b6b" opacity="0.4" pointer-events="none"/>
+      <circle cx="${cx}" cy="${cy}" r="10" fill="rgba(0,0,0,0)" stroke="rgba(0,0,0,0)" stroke-width="2" onmousemove="ttShow(event,'<b>${e.date}</b><br>${label}: ${ma[i].toFixed(1)}')" onmouseout="ttHide()" style="cursor:pointer;"/>`;
+  }).join('');
+  return `<g id="tl-total" onmouseover="var l=document.getElementById('tl-total').querySelector('polyline.vis');if(l){l.setAttribute('stroke-width','3.5');l.setAttribute('opacity','1')}" onmouseout="var l=document.getElementById('tl-total').querySelector('polyline.vis');if(l){l.setAttribute('stroke-width','2');l.setAttribute('opacity','0.8')}">
+    <polyline points="${points}" fill="none" stroke="transparent" stroke-width="24" onmousemove="ttShow(event,'<b>${label || 'тренд'}</b><br>Тренд (3д ССП)')" onmouseout="ttHide()" style="cursor:pointer;"/>
+    <polyline class="vis" points="${points}" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linejoin="round" opacity="0.8" pointer-events="none"/>
+    ${dots}
+    <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="#ff6b6b" opacity="0.9" pointer-events="none"/>
+    <text x="${lastX + 25}" y="${lastY - 1}" text-anchor="start" font-size="9" fill="#ff6b6b" font-weight="600">${label || 'тренд'}</text>
+  </g>`;
+}
+
+function dateChartAxes(max, entries, step, barW, pad, w, h, ch) {
+  let bars = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + ch - (i / 4) * ch;
+    bars += `<line x1="${pad.left - 5}" y1="${y}" x2="${pad.left}" y2="${y}" stroke="#ccc" stroke-width="1"/>`;
+    bars += `<text x="${pad.left - 8}" y="${y + 3}" text-anchor="end" font-size="9" fill="#888">${Math.round((i / 4) * max)}</text>`;
+  }
+  // Date labels — centering fix: use slot center, NOT barW center
+  entries.forEach((e, i) => {
+    const slotCenter = pad.left + i * step + step / 2;
+    const parts = e.date.split('-');
+    const label = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0].slice(2)}` : e.date.slice(5, 10);
+    const labelStep = Math.max(1, Math.floor(entries.length / 10));
+    if (i % labelStep === 0 || entries.length <= 7) {
+      bars += `<text x="${slotCenter}" y="${h - 8}" text-anchor="middle" font-size="9" fill="#888">${label}</text>`;
+    }
+  });
+  return bars;
+}
+
+function renderTimeline(items) {
+  const byCat = {};
+  items.forEach(x => { const cat = x.category || 'REJECT'; byCat[cat] = (byCat[cat] || 0) + 1; });
+  const companies = new Set(items.map(x => x.company).filter(Boolean));
+  const avg = items.map(x => x.score).filter(s => s != null);
+  const avgScore = avg.length ? (avg.reduce((a,b) => a+b, 0) / avg.length) : null;
+
+  document.getElementById('timeline-stats').innerHTML =
+    `<div><strong>${items.length}</strong> вакансий за период</div>` +
+    `<div><strong>${companies.size}</strong> компаний</div>` +
+    (avgScore != null ? `<div>Средний балл: <strong>${avgScore.toFixed(2)}</strong></div>` : '') +
+    CATS.map(k =>
+      `<div style="display:inline-block;margin-right:12px;cursor:pointer;" onmouseover="ttShow(event,'<b>${CAT_LABELS[k]}</b><br>${byCat[k] || 0} вакансий')" onmouseout="ttHide()">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${CAT_COLORS[k]};margin-right:4px;"></span>
+        <a href="/vacancies?category=${k}" style="color:#1a1a2e;text-decoration:none;">${CAT_FULL[k]}: <strong>${byCat[k] || 0}</strong></a>
+      </div>`
+    ).join('');
+
+  const svg = document.getElementById('timeline-chart-svg');
+  const catOrder = CATS.filter(k => byCat[k]);
+  if (!catOrder.length) {
+    svg.innerHTML = '<text x="400" y="95" text-anchor="middle" fill="#999" font-size="14">Нет данных за период</text>';
+    return;
+  }
+  const maxC = Math.max(...catOrder.map(k => byCat[k]), 1);
+  const bw = 60, gap = 20, startX = 50;
+  svg.innerHTML = catOrder.map((k, i) => {
+    const x = startX + i * (bw + gap);
+    const bh = (byCat[k] / maxC) * 140;
+    const y = 170 - bh;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="${CAT_COLORS[k]}" style="cursor:pointer;transition:opacity 0.15s;" onmouseover="ttShow(event,'<b>${CAT_LABELS[k]}</b><br>${byCat[k]} вакансий<br>${((byCat[k]/items.length)*100).toFixed(1)}% от всех за период');this.setAttribute('opacity','0.8')" onmouseout="this.setAttribute('opacity','1');ttHide()"></rect>
+    <text x="${x + bw/2}" y="${y - 6}" text-anchor="middle" font-size="12" font-weight="700" fill="#333">${byCat[k]}</text>
+    <text x="${x + bw/2}" y="190" text-anchor="middle" font-size="10" fill="#666">${CAT_LABELS[k]}</text>`;
+  }).join('');
+}
+
+function parseDateHH(s) {
+  const ruMonths = { января:0,февраля:1,марта:2,апреля:3,мая:4,июня:5,июля:6,августа:7,сентября:8,октября:9,ноября:10,декабря:11 };
+  const m = s.match(/(\d+)\s*(\S+)\s*(\d+)/);
+  if (m) {
+    const day = parseInt(m[1]), month = ruMonths[m[2].toLowerCase()], year = parseInt(m[3]);
+    if (month !== undefined) return new Date(year, month, day);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+</script>
 {% endblock %}

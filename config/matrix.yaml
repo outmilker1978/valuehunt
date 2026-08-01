@@ -1,334 +1,582 @@
+blocks:
+- id: ban_gambling
+  name: Гемблинг/букмекерство
+  mode: reject
+  target: full_text
+  keywords:
+  - gambling
+  - betting
+  - casino
+  - igaming
+  - букмекер
+  - казино
+  - crypto
+  - bitcoin
+  - winline
+  - poker
+  - азартные игры
+- id: ban_non_pm_role
+  name: Роль не PM/PO
+  mode: reject
+  target: title
+  keywords:
+  - team lead
+  - tech lead
+  - engineering manager
+  - chief product officer
+  - cpo
+  - head of engineering
+  - data scientist
+  - data engineer
+  - devops
+  - cto
+  - lead developer
+  - architect
+  - scrum master
+  - менеджер по продажам
+  - руководитель отдела продаж
+  - менеджер по работе с клиентами
+  - системный аналитик
+  - бизнес аналитик
+  - аналитик данных
+  - технический директор
+  - руководитель разработки
+  - программист
+  - разработчик
+  - инженер программист
+  - тестировщик
+  - qa инженер
+  - ui дизайнер
+  - ux дизайнер
+  - продуктовый дизайнер
+  - администратор проектов
+  - координатор проектов
+- id: ban_gamedev
+  name: GameDev (не enterprise)
+  mode: reject
+  target: full_text
+  keywords:
+  - gamedev
+  - game dev
+  - game development
+  - midcore
+  - hardcore games
+  - игровая студия
+  - геймдизайн
+  - game designer
+  - gaming
+  - разработка игр
+  - мобильные игры
+  - mobile games
+  - game developer
+  - game producer
+gates:
+  gate_b:
+    archetype_01:
+      name: Enterprise PM
+      match_mode: word
+      keywords:
+      - project manager
+      - delivery manager
+      - program manager
+      - руководитель проектов
+      - руководитель it проектов
+      - руководитель it-проектов
+      - менеджер проектов
+      - pmo
+      - управление проектами
+      - руководитель портфеля
+      - портфель проектов
+      - it project manager
+    archetype_03:
+      name: Hybrid PM-PO
+      match_mode: word
+      keywords:
+      - product manager
+      - product owner
+      - po
+      - продуктовый менеджер
+      - владелец продукта
+      - продукт-менеджер
+      - pm/po
+      - hybrid pm
+      - управление продуктом
+      - менеджер продукта
 groups:
 - id: role
   name: Роль и содержание работы
-  weight: 10
+  weight: 9
+  description: Насколько задачи и обязанности в вакансии совпадают с классическим
+    project или product management — базовая проверка перед детальным скорингом
   criteria:
-  - id: pm_po_hybrid
-    name: Роль PM/PO (гибрид)
-    weight: 10
-    description: Совмещение Project и Product Owner
+  - id: role_pm_po
+    name: PM/PO (гибрид)
+    weight: 9
+    description: Наличие в вакансии project manager или product owner — базовый пропуск
+      в скоринг, проверяет совпадение по названию и описанию роли
     keywords:
     - project manager
     - product owner
     - pm/po
     - it project manager
-    - product manager
-    - project and product
+    - руководитель проектов
+    - менеджер проектов
     - управление проектами
-    - управление продуктом
-    - продукт
-    - project management
+    - ведение проектов
+    - владелец продукта
     - product management
-  - id: enterprise_scale
+    - гибрид pm
+    - hybrid pm
+  - id: role_enterprise
     name: Enterprise-масштаб
     weight: 9
-    description: Крупные заказчики, сложные интеграции
+    description: Вакансия предполагает работу с крупными заказчиками, сложными интеграциями
+      и масштабными системами — ключевое для Enterprise PM
     keywords:
     - enterprise
     - крупный
+    - масштаб
     - сложная интеграция
     - системная интеграция
-    - масштаб
-    - big data
     - highload
-    - high load
-    - тысяч пользователей
-    - госзаказчик
-    - гос
+    - высоконагруженный
     - b2b
     - b2g
     - корпоративный
-  - id: product_influence
+    - госзаказчик
+    - федеральный
+    - геораспределенный
+    - холдинг
+  - id: role_product
     name: Продуктовое влияние
-    weight: 9
-    description: Бэклог, roadmapping, дашборды метрик
+    weight: 8
+    description: Вакансия требует работы с продуктовыми метриками, roadmap и data-driven
+      подходами — важный дифференциатор PM vs PO
     keywords:
-    - product roadmap
     - roadmap
     - бэклог
     - backlog
-    - продуктовые метрики
-    - a/b test
-    - ab test
     - product discovery
-    - product metrics
-    - data driven
-    - дашборд
-    - dashboard
-    - продуктовый подход
+    - продуктовые метрики
     - nps
     - retention
-  - id: full_cycle
+    - a/b test
+    - data driven
+    - дашборд
+    - продуктовый подход
+    - product led
+    - юнит-экономика
+    - unit economics
+  - id: role_fullcycle
     name: Полный цикл
-    weight: 8
-    description: От discovery до пост-поддержки
+    weight: 7
+    description: Проект ведётся от discovery до post-launch сопровождения — full cycle,
+      end-to-end, полный жизненный цикл продукта
     keywords:
     - full cycle
     - полный цикл
     - discovery
-    - post launch
-    - сопровождение
+    - delivery
+    - от идеи до внедрения
     - жизненный цикл
     - lifecycle
-    - от идеи
-    - до внедрения
-    - поддержка
-    - development
-    - delivery
-    - post-production
+    - post launch
+    - сопровождение
+    - end to end
+    - e2e
 - id: conditions
   name: Условия работы
   weight: 10
+  description: Формат и локация работы — насколько условия соответствуют предпочтениям
+    по удалёнке, гибриду, офису в СПб и отсутствию командировок
   criteria:
-  - id: remote_100
-    name: Удалёнка 100%
+  - id: cond_remote
+    name: Удалёнка
     weight: 10
-    description: Работа из любой точки
+    description: Работа из любой точки без привязки к офису — приоритетный формат,
+      максимальный вес в группе
     keywords:
-    - удалённая работа
+    - удаленная работа
     - удаленка
     - remote
-    - 100% удалённо
-    - удаленный формат
     - work from home
     - wfh
-    - work remotely
     - из любой точки
     - дистанционно
-    - удалённо
-  - id: hybrid
-    name: Гибрид (офис по необходимости)
-    weight: 8
-    description: Разовые встречи/командировки
+    - удаленно
+    - полностью удаленно
+    - работа из дома
+    - home office
+    - work remotely
+  - id: cond_hybrid
+    name: Гибрид
+    weight: 7
+    description: Частичная работа из офиса и из дома — приемлемый формат, но с меньшим
+      приоритетом чем 100% удалёнка
     keywords:
     - гибрид
     - hybrid
-    - частичная удалёнка
     - смешанный график
-    - гибкий график
-    - удалённо/офис
     - можно из дома
     - гибридный формат
-  - id: office_moscow
-    name: Офис Москва
-    weight: 4
-    description: Только если поездки раз в 2-4 недели
+  - id: cond_spb
+    name: Работа в СПб
+    weight: 7
+    description: Офис расположен в Санкт-Петербурге — предпочтительная локация для
+      очного присутствия
     keywords:
-    - москва
-    - moscow
-    - офис в москве
-    - мск
-  - id: business_trips
-    name: Командировки
-    weight: 6
-    description: Готовность к поездкам
+    - санкт-петербург
+    - спб
+    - офис в санкт-петербурге
+    - питер
+  - id: cond_flexible
+    name: Гибкий график без командировок
+    weight: 8
+    description: Свободный график, отсутствие обязательных командировок — важное
+      условие для планирования времени
     keywords:
-    - командировки
-    - business trips
-    - поездки
-    - travel
-    - готовность к командировкам
-    - разъездной характер
+    - гибкий график
+    - flexible
+    - свободный график
+    - flexible hours
+    - без командировок
 - id: finance
   name: Финансы
   weight: 9
+  description: Зарплата, прозрачность вилки и компенсационный пакет — чем выше и прозрачнее
+    условия, тем выше оценка
   criteria:
-  - id: salary_fix
+  - id: fin_salary
     name: Фикс от 250k net
     weight: 10
-    description: Минимальный порог
+    description: Указанная зарплата после вычета налогов — парсится из текста с учётом
+      модификатора gross/net, не менее 200k для прохода Gate A, цель 250k net
     keywords: []
-  - id: salary_transparent
+  - id: fin_transparent
     name: Вилка указана
-    weight: 7
-    description: Прозрачность компании
+    weight: 6
+    description: В вакансии указан диапазон зарплаты (от-до) или конкретная сумма
+      — признак зрелости и честности работодателя
     keywords:
     - зп
     - зарплата
     - salary
     - доход
-    - compensation
+    - компенсация
     - вилка
-    - от
-    - до
+    - от–до
     - оклад
     - ставка
-  - id: it_accreditation
+    - compensation
+    - income
+  - id: fin_it_accr
     name: IT-аккредитация
-    weight: 6
-    description: Налоговые льготы
+    weight: 7
+    description: Компания имеет IT-аккредитацию — даёт налоговые льготы и подтверждает
+      статус ИТ-работодателя
     keywords:
     - it аккредитация
-    - it accreditation
     - аккредитованная компания
     - it компания
     - льготы
     - аккредитация
-  - id: dms
-    name: ДМС (стоматология)
-    weight: 5
-    description: Полис с первого дня
+  - id: fin_dms
+    name: ДМС (3 градации)
+    weight: 8
+    description: 'Наличие добровольного медицинского страхования и стоматологии —
+      оценивается по match_curve: базовое ДМС vs расширенный пакет со стоматологией'
     keywords:
     - дмс
     - страхование
     - medical insurance
-    - health insurance
     - стоматология
     - полис
     - добровольное медицинское
+    - health insurance
+    - med insurance
+- id: exp
+  name: Отраслевой опыт
+  weight: 9
+  description: В каких доменах и индустриях кандидат уже работал — чем ближе к требованиям
+    вакансии, тем выше совпадение
+  criteria:
+  - id: exp_b2b
+    name: B2B/B2G/Enterprise
+    weight: 9
+    description: Опыт работы с корпоративными клиентами, госзаказчиками и крупными
+      проектами — основа Enterprise PM профиля
+    keywords:
+    - b2b
+    - b2g
+    - enterprise
+    - корпоративный
+    - госзаказчик
+    - государственный
+    - федеральный
+    - системная интеграция
+    - it консалтинг
+    - внедрение
+    - промышленный
+    - крупный заказчик
+  - id: exp_dwh_bi
+    name: DWH/BI/Аналитика
+    weight: 10
+    description: Опыт в Data Warehouse, BI-отчётности и аналитических платформах —
+      ключевая экспертиза кандидата, максимальный вес в группе
+    keywords:
+    - dwh
+    - bi
+    - data warehouse
+    - аналитика
+    - отчётность
+    - data platform
+    - olap
+    - clickhouse
+    - greenplum
+    - power bi
+    - superset
+    - etl
+    - kafka
+    - airflow
+    - импортозамещение
+    - bi система
+    - аналитическая платформа
+    - data lake
+  - id: exp_wms
+    name: WMS/Логистика/Склад
+    weight: 5
+    description: Опыт в WMS, TMS, управлении складом и цепочками поставок — релевантно
+      для логистических проектов, но не основной фокус
+    keywords:
+    - wms
+    - logistics
+    - логистика
+    - склад
+    - warehouse
+    - supply chain
+    - цепочка поставок
+    - yms
+    - управление складом
+    - tms
+    - транспортная логистика
+  - id: exp_pmo
+    name: Управление портфелем / PMO
+    weight: 7
+    description: Опыт в мультипроектном управлении, Program Management и проектных
+      офисах — важен для ролей уровня Portfolio Manager
+    keywords:
+    - портфель проектов
+    - program management
+    - portfolio
+    - pmo
+    - мультипроектное управление
+    - проектный офис
+    - портфельное управление
+    - program manager
+    - мультипроект
+- id: interest
+  name: Отраслевой интерес
+  weight: 7
+  description: Интерес к смежным и новым индустриям, где опыта пока нет, но есть мотивация
+    войти — расширяет горизонт поиска
+  criteria:
+  - id: int_geo
+    name: Geo/Картография
+    weight: 10
+    description: Интерес к геоинформационным системам, картографии и навигационным
+      сервисам — высокий приоритет (2ГИС как целевой работодатель)
+    keywords:
+    - geo
+    - картография
+    - навигация
+    - карты
+    - maps
+    - геоданные
+    - spatial
+    - 2ГИС
+    - 2gis
+    - геоинформационные
+    - gis
+    - геопространственный
+    - геосервис
+    - location
+    - геоаналитика
+  - id: int_ai
+    name: AI/Data Science
+    weight: 10
+    description: Интерес к искусственному интеллекту, ML и Data Science — быстрорастущий
+      домен с высоким потенциалом
+    keywords:
+    - ai
+    - ml
+    - data science
+    - нейросети
+    - artificial intelligence
+    - machine learning
+    - llm
+    - gpt
+    - deep learning
+    - big data
+    - nlp
+    - компьютерное зрение
+    - predictive analytics
+  - id: int_banking
+    name: Banking/Fintech
+    weight: 8
+    description: Интерес к банковским и финансовым технологиям — большой рынок с множеством
+      PM-вакансий
+    keywords:
+    - банк
+    - fintech
+    - финансовый
+    - bank
+    - payments
+    - платёжный
+    - финансовые технологии
+    - banking
+    - платежная система
+    - digital banking
+    - neobank
+  - id: int_med
+    name: MedTech/Healthcare
+    weight: 7
+    description: Интерес к медицинским технологиям, телемедицине и цифровому здравоохранению
+      — растущий домен с долгосрочной перспективой
+    keywords:
+    - medtech
+    - healthcare
+    - здоровье
+    - медицина
+    - medical
+    - health tech
+    - телемедицина
+    - здравоохранение
+    - digital health
+    - ehealth
 - id: company
   name: Компания и репутация
-  weight: 8
+  weight: 5
+  description: Репутация работодателя, стабильность и качество HR-процессов — группа
+    сжата в v2.0 (placeholder для LLM-фазы), но учитывает публичные данные
   criteria:
-  - id: hh_rating
-    name: Рейтинг HH (Top-50/100)
+  - id: comp_dreamjob
+    name: Dream Job / Отзывы
     weight: 8
-    description: Зрелость HR-функции
-    keywords: []
-  - id: dream_job
-    name: Dream Job / отзывы
-    weight: 7
-    description: Реальная культура
+    description: Упоминания лучшего работодателя, рейтингов и позитивных отзывов сотрудников
+      — косвенный показатель привлекательности компании
     keywords:
     - лучший работодатель
     - топ работодатель
     - best employer
     - dream job
-    - рейтинг
+    - рейтинг работодателей
+    - лучшая компания
     - отзывы сотрудников
-  - id: company_age
-    name: Возраст компании (3+ лет)
-    weight: 6
-    description: Стабильность
-    keywords: []
-  - id: ceo_media
-    name: Медийность CEO/команды
+  - id: comp_age
+    name: Возраст компании 3+
     weight: 7
-    description: Прозрачность
+    description: Компания существует более 3 лет — косвенный признак стабильности,
+      данные из HH API (не из текста вакансии)
+    keywords: []
+  - id: comp_hr
+    name: Зрелость HR
+    weight: 6
+    description: Качество HR-функции компании — placeholder для будущей LLM-фазы,
+      пока не оценивается
+    keywords: []
+  - id: comp_ceo
+    name: Медийность CEO
+    weight: 5
+    description: Прозрачность CEO и публичность компании — placeholder для будущей
+      LLM-фазы, пока не оценивается
     keywords: []
 - id: career
   name: Карьера и развитие
-  weight: 8
+  weight: 7
+  description: Возможности профессионального роста — карьерная лестница, обучение,
+    менторство и потолок продвижения до топ-уровня
   criteria:
   - id: career_ladder
     name: Карьерная лестница
     weight: 9
-    description: Грейды, понятный рост
+    description: Наличие формальной системы грейдов и карьерного роста в компании
+      — показывает что развитие происходит не только по факту но и по процессу
     keywords:
     - карьерный рост
-    - карьера
     - грейд
     - grade
     - повышение
-    - professional growth
-    - career
-    - развитие
     - promotion
-    - карьерная лестница
     - должностной уровень
-    - senior
-    - lead
-  - id: education
+    - система грейдов
+    - карьерная лестница
+    - professional growth
+    - профессиональное развитие
+  - id: career_edu
     name: Обучение за счёт
     weight: 8
-    description: Конференции, курсы, сертификации
+    description: Компания оплачивает курсы, конференции, сертификации и тренинги —
+      важный фактор для непрерывного профессионального развития
     keywords:
     - обучение
-    - training
     - курсы
-    - courses
     - конференции
     - certification
     - сертификация
-    - education
     - повышение квалификации
-    - профессиональное развитие
-    - conference
+    - training
     - corporate training
-  - id: mentoring
-    name: Менторство/наставничество
+    - тренинги
+    - бюджет на обучение
+    - education
+    - seminar
+  - id: career_mentor
+    name: Менторство
     weight: 7
-    description: Культура развития
+    description: Наличие системы менторства, коучинга и индивидуальных планов развития
+      — значимо для роста и адаптации
     keywords:
     - ментор
     - mentor
     - наставник
     - наставничество
-    - mentoring
-    - коучинг
     - coaching
     - buddy
+    - коучинг
     - развитие сотрудников
-  - id: growth_track
+    - индивидуальный план развития
+    - personal development plan
+  - id: career_track
     name: Трек до PPM/CPO
     weight: 9
-    description: Долгосрочный путь
+    description: Возможность роста до топ-позиций (Head of, Director, CPO) — высота
+      потолка, а не наличие формальных грейдов
     keywords:
-    - lead
     - head of
     - director
-    - cpо
+    - cpo
     - ppm
-    - руководитель
-    - chief
     - vp
+    - chief
     - senior management
     - leadership
     - карьерный трек
     - управленческий
+    - руководитель направления
+    - директор департамента
+    - executive
+    - топ менеджмент
 - id: tech
   name: Технологический стек
   weight: 7
+  description: Насколько используемые в вакансии технологии совпадают с экспертизой
+    кандидата — devops, data, AI и продуктовые метрики
   criteria:
-  - id: ai_ml
-    name: AI/ML-инструменты
-    weight: 8
-    description: Актуальность
-    keywords:
-    - ai
-    - ml
-    - machine learning
-    - deep learning
-    - llm
-    - artificial intelligence
-    - нейросеть
-    - нейронные сети
-    - chatgpt
-    - gpt
-    - openai
-    - искусственный интеллект
-    - data science
-    - nlp
-    - computer vision
-  - id: data_bi_dwh
-    name: Data / BI / DWH
-    weight: 8
-    description: Основная экспертиза
-    keywords:
-    - bi
-    - dwh
-    - data warehouse
-    - power bi
-    - greenplum
-    - analytics
-    - аналитика
-    - дашборд
-    - etl
-    - kafka
-    - airflow
-    - data
-    - data platform
-    - дата
-    - отчётность
-    - data engineering
-    - olap
-    - clickhouse
-    - superset
-    - luxms
-  - id: modern_stack
+  - id: tech_modern
     name: Современный стек
-    weight: 7
-    description: CI/CD, Docker, K8s, не legacy
+    weight: 9
+    description: Docker, Kubernetes, CI/CD, облачные технологии (AWS, Yandex Cloud)
+      и микросервисы — современный инженерный стек
     keywords:
     - docker
     - kubernetes
@@ -339,76 +587,123 @@ groups:
     - cloud
     - microservices
     - микросервисы
-    - aws
-    - azure
-    - yandex cloud
     - terraform
     - ansible
-    - modern stack
+    - yandex cloud
+    - aws
+    - azure
+    - облачные технологии
     - python
     - fastapi
-  - id: product_metrics
-    name: Продуктовые метрики
+  - id: tech_data
+    name: Data/BI/DWH
     weight: 8
-    description: Data-driven культура
+    description: Power BI, Greenplum, Clickhouse, ETL, Kafka, Airflow — специализированные
+      инструменты аналитики и управления данными
     keywords:
-    - a/b тест
+    - power bi
+    - greenplum
+    - etl
+    - kafka
+    - airflow
+    - superset
+    - clickhouse
+    - postgresql
+    - hadoop
+    - spark
+    - sql
+    - olap
+    - data engineering
+    - luxms
+    - databoring
+  - id: tech_ai
+    name: AI/ML инструменты
+    weight: 8
+    description: GPT, LLM, нейросети, TensorFlow, PyTorch — инструментарий AI/ML проектов,
+      growing domain
+    keywords:
+    - ai
+    - ml
+    - deep learning
+    - nlp
+    - computer vision
+    - neural networks
+    - gpt
+    - openai
+    - chatgpt
+    - llm
+    - нейросеть
+    - tensorflow
+    - pytorch
+    - искусственный интеллект
+  - id: tech_metrics
+    name: Продуктовые метрики
+    weight: 7
+    description: A/B тесты, NPS, Retention, LTV, юнит-экономика, OKR — продуктовые
+      метрики для оценки эффективности и принятия решений
+    keywords:
+    - a/b test
     - ab test
-    - продуктовые метрики
     - nps
     - retention
     - churn
     - adoption
-    - tta
-    - ttm
-    - data driven
-    - аналитика продукта
-    - продуктовая аналитика
-    - юнит-экономика
-    - unit economics
     - ltv
     - cac
     - cohort
+    - юнит-экономика
+    - product metrics
+    - time to market
+    - kpi
+    - okr
+    - user engagement
+    - growth metrics
 - id: culture
   name: Культура и процессы
-  weight: 7
+  weight: 6
+  description: Культура найма, формат занятости и корпоративные ценности — прозрачность,
+    прямой найм, Agile и соцпакет
   criteria:
-  - id: agile_maturity
-    name: Зрелые Agile-процессы
-    weight: 8
-    description: Не хаос, не бюрократия
+  - id: cult_agile
+    name: Зрелые Agile
+    weight: 7
+    description: Agile, Scrum, Kanban, ретроспективы — зрелость гибких методологий
+      в команде на основе упоминаний в вакансии
     keywords:
     - agile
     - scrum
     - kanban
-    - agile процессы
-    - гибкие методологии
     - sprint
-    - stand up
     - retro
     - retrospective
     - jira
     - confluence
-    - влегке
+    - stand up
+    - daily
+    - гибкие методологии
+    - sprint planning
     - agile transformation
-  - id: hiring_transparency
+  - id: cult_transparent
     name: Прозрачность в найме
     weight: 9
-    description: Быстрая обратная связь
+    description: Открытость процесса, честность, обратная связь и быстрый найм — показывает
+      что компания ценит время кандидата
     keywords:
-    - прозрачность
     - feedback
     - обратная связь
-    - быстрый найм
     - прозрачный
     - честный
-    - открытость
     - openness
     - transparency
-  - id: no_outstaff
-    name: Отсутствие аутстаффа
-    weight: 7
-    description: Прямой найм
+    - быстрый найм
+    - прозрачность
+    - открытость
+    - honest
+  - id: cult_direct
+    name: Прямой найм
+    weight: 8
+    description: Компания нанимает в штат, а не через аутсорс или аутстафф — предпочтительный
+      формат занятости
     keywords:
     - прямой найм
     - direct hire
@@ -416,23 +711,25 @@ groups:
     - in-house
     - собственная разработка
     - продуктовая компания
-    - аутстафф
-    - outstaff
-  - id: social_package
+    - штат
+    - full time
+    - internal team
+  - id: cult_benefits
     name: Соцпакет
-    weight: 6
-    description: ДМС, спорт, питание
+    weight: 7
+    description: ДМС, спорт, питание, страховка и другие бенефиты — дополнительный
+      фактор привлекательности работодателя
     keywords:
     - соцпакет
     - social package
     - дмс
-    - med insurance
     - спорт
     - gym
     - питание
     - lunch
-    - meal
-    - '% bunch'
-    - корпоративный
     - benefits
     - бенефиты
+    - добровольное медицинское
+    - страхование
+    - фитнес
+    - компенсация питания

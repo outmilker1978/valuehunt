@@ -1,0 +1,1368 @@
+{% extends "base.html" %}
+{% block title %}Контакты{% endblock %}
+
+{% block content %}
+<h1>Контакты</h1>
+
+<div style="display:flex; gap:16px; align-items:flex-start;">
+  <div style="flex:1; min-width:0;">
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+        <button class="btn btn-sm" onclick="showAddContact()">+ Добавить контакт</button>
+        <div style="display:flex;gap:2px;margin-left:4px;">
+          <button id="view-company" class="btn btn-sm" onclick="setView('company')">По компаниям</button>
+          <button id="view-priority" class="btn btn-sm" onclick="setView('priority')">По приоритету</button>
+          <button id="view-date" class="btn btn-sm" onclick="setView('date')">По датам</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+        <span style="display:flex;align-items:center;gap:4px;">
+          <label>Приоритет:</label>
+          <select id="priority-filter" onchange="applyFilters()" class="input" style="width:auto;">
+            <option value="">Все</option>
+            <option value="S">Активно</option>
+            <option value="B">Перспективно</option>
+            <option value="C">В базе</option>
+          </select>
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <label>Источник:</label>
+          <input id="source-filter" class="input" style="width:140px;" placeholder="Любой текст..." oninput="applyFilters()" list="source-suggestions">
+        </span>
+        <datalist id="source-suggestions">
+          <option value="HH">
+          <option value="Telegram">
+          <option value="LinkedIn">
+          <option value="Рекомендация">
+          <option value="VK">
+          <option value="Email">
+          <option value="Сами вышли на меня">
+          <option value="Сетка">
+          <option value="Хабр Карьера">
+          <option value="Getmatch">
+          <option value="AI">
+        </datalist>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <label style="display:flex;flex-direction:column;line-height:1.2;">Компания:<span style="color:#999;font-size:9px;">(выбор)</span></label>
+          <select id="company-filter" onchange="applyFilters()" class="input" style="width:auto;max-width:200px;">
+            <option value="">Все компании</option>
+          </select>
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <label>Поиск:</label>
+          <div style="display:flex;gap:2px;align-items:center;">
+            <input id="search-input" class="input" style="width:180px;" placeholder="Имя, компания, роль..." oninput="applyFilters()">
+            <button type="button" class="btn btn-sm" onclick="clearSearch()" title="Очистить" style="padding:2px 6px;font-size:11px;">✕</button>
+          </div>
+        </span>
+      </div>
+    </div>
+
+<div id="due-actions" style="margin-bottom:16px;">
+  <div id="overdue-banner" class="card" style="border-left:4px solid #856404;margin-bottom:8px;display:none;">
+    <h3 style="color:#856404;">Просроченные действия</h3>
+    <div id="overdue-list"></div>
+  </div>
+  <div id="today-banner" class="card" style="border-left:4px solid #e94560;margin-bottom:8px;display:none;">
+    <h3 style="color:#e94560;">К выполнению сегодня</h3>
+    <div id="today-list"></div>
+  </div>
+  <div id="tomorrow-banner" class="card" style="border-left:4px solid #856404;margin-bottom:8px;display:none;">
+    <h3 style="color:#856404;">На завтра</h3>
+    <div id="tomorrow-list"></div>
+  </div>
+   <div id="thisweek-banner" class="card" style="border-left:4px solid #6f42c1;margin-bottom:8px;display:none;">
+     <h3 style="color:#6f42c1;">На этой неделе</h3>
+     <div id="thisweek-list"></div>
+   </div>
+   <div id="nextweek-banner" class="card" style="border-left:4px solid #007bff;margin-bottom:8px;display:none;">
+    <h3 style="color:#007bff;">На следующей неделе</h3>
+    <div id="nextweek-list"></div>
+  </div>
+  <div id="done-today-banner" class="card" style="border-left:4px solid #28a745;margin-bottom:8px;display:none;">
+    <h3 style="color:#28a745;">Выполненные сегодня</h3>
+    <div id="done-today-list"></div>
+  </div>
+  <div id="due-empty" style="color:#999;font-size:13px;padding:4px 0;">Нет запланированных действий</div>
+</div>
+
+<div id="contacts-list"></div>
+
+</div>  <!-- left column (flex:1) -->
+
+<div id="calendar-panel" style="width:320px;flex-shrink:0;">
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+    <button class="btn btn-sm" onclick="calendarPrev()" style="font-size:11px;">←</button>
+    <span id="cal-header" style="flex:1;font-weight:600;font-size:14px;"></span>
+    <button class="btn btn-sm" onclick="calendarNext()" style="font-size:11px;">→</button>
+    <button class="btn btn-sm" onclick="calendarToday()" style="font-size:11px;">Сегодня</button>
+  </div>
+
+  <div id="cal-grid" style="display:flex;gap:16px;flex-wrap:wrap;"></div>
+
+  <div id="cal-date-info" style="margin-top:8px;display:none;">
+    <div style="background:#cce5ff;border:1px solid #b8daff;border-radius:4px;padding:6px 8px;font-size:13px;display:flex;align-items:center;gap:8px;">
+      <span id="cal-selected-date" style="font-weight:600;"></span>
+      <span id="cal-filter-count" style="color:#666;font-size:12px;"></span>
+      <button class="btn btn-sm" onclick="clearCalendarFilter()" style="font-size:10px;padding:1px 6px;margin-left:auto;">✕ сброс</button>
+    </div>
+    <div id="cal-filter-list" style="margin-top:6px;"></div>
+  </div>
+</div>
+
+</div>  <!-- flex container (content + calendar) -->
+
+<!-- Modal -->
+<div id="contact-modal" onclick="if(event.target===this)closeModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;">
+    <div class="card" style="max-width:600px;width:90%;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 id="modal-title">Контакт</h2>
+        <button class="btn btn-sm" onclick="closeModal()" style="font-size:16px;padding:2px 10px;background:transparent;color:#888;">✕</button>
+      </div>
+    <form id="contact-form" onsubmit="saveContact();return false">
+      <input type="hidden" id="contact-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Имя *</label>
+          <input id="c-name" class="input" required>
+        </div>
+        <div class="form-group">
+          <label>Роль</label>
+          <input id="c-role" class="input" placeholder="HR, Recruiter, Hiring Manager...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2;">
+          <label>Компания</label>
+          <div style="display:flex;gap:4px;">
+            <input id="c-company" class="input" list="company-suggestions" autocomplete="off" placeholder="Начните вводить название..." style="flex:1;" oninput="onCompanyChange()">
+            <datalist id="company-suggestions"></datalist>
+            <button type="button" class="btn btn-sm" onclick="quickAddCompany()" title="Создать компанию">+</button>
+            <button type="button" class="btn btn-sm" onclick="openCompanyVacancies()" title="Вакансии этой компании" style="background:#0066cc;">→ Вакансии</button>
+            <button type="button" class="btn btn-sm" onclick="createVacancyFromContact()" title="Создать вакансию для этой компании" style="background:#28a745;">+ Вакансия</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row" id="company-details-row" style="display:none;">
+        <div class="form-group">
+          <label>Сайт компании</label>
+          <input id="c-company-website" class="input" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Адрес</label>
+          <input id="c-company-address" class="input" placeholder="Город, улица...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Источник</label>
+          <input id="c-source" class="input" list="source-suggestions" placeholder="HH, Telegram, рекомендация..." value="HH">
+        </div>
+        <div class="form-group">
+          <label>Приоритет</label>
+          <select id="c-priority" class="input">
+            <option value="S">Активно</option>
+            <option value="B" selected>Перспективно</option>
+            <option value="C">В базе</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Telegram</label>
+          <div style="display:flex;gap:4px;">
+            <input id="c-telegram" class="input" placeholder="@username" style="flex:1;">
+            <button type="button" class="btn btn-sm copy-btn" onclick="copyField('c-telegram')" title="Копировать">📋 Копировать</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <div style="display:flex;gap:4px;">
+            <input id="c-email" class="input" type="email" style="flex:1;">
+            <button type="button" class="btn btn-sm copy-btn" onclick="copyField('c-email')" title="Копировать">📋 Копировать</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Телефон</label>
+          <div style="display:flex;gap:4px;">
+            <input id="c-phone" class="input" style="flex:1;">
+            <button type="button" class="btn btn-sm copy-btn" onclick="copyField('c-phone')" title="Копировать">📋 Копировать</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Доп. телефоны</label>
+        <div id="phones-container"></div>
+        <button type="button" class="btn btn-sm" onclick="addPhone()" style="margin-top:4px;">+ Добавить телефон</button>
+      </div>
+      <div class="form-group">
+        <label>Социальные сети</label>
+        <div id="social-links-container"></div>
+        <button type="button" class="btn btn-sm" onclick="addSocialLink()" style="margin-top:4px;">+ Добавить ссылку</button>
+      </div>
+      <div class="form-group">
+        <label>Заметки</label>
+        <textarea id="c-notes" class="input" style="max-width:100%;min-height:60px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+        <button type="submit" class="btn" id="btn-save-contact">Сохранить</button>
+        <span id="save-indicator" style="font-size:13px;color:#28a745;display:none;">✓ Сохранено</span>
+        <button type="button" class="btn" style="background:#666;" onclick="closeModal()">Отмена</button>
+      </div>
+    </form>
+
+    <hr style="margin:20px 0;">
+    <div id="interactions-wrapper" style="display:flex;flex-direction:column;">
+      <div id="interactions-list" style="max-height:240px;overflow-y:auto;margin-bottom:8px;"></div>
+      <div id="interaction-sticky" style="border-top:1px solid #eee;padding-top:8px;background:white;position:sticky;bottom:0;">
+        <details id="interaction-details">
+          <summary style="cursor:pointer;font-size:13px;color:#e94560;">+ Добавить взаимодействие</summary>
+          <form id="interaction-form" onsubmit="saveInteraction();return false" style="margin-top:8px;">
+        <input type="hidden" id="i-contact-id">
+        <input type="hidden" id="i-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Тип</label>
+            <select id="i-type" class="input">
+              <option value="communication">Коммуникация</option>
+              <option value="in_progress">В работе</option>
+              <option value="on_hold">На стопе</option>
+              <option value="offer">Оффер/Предложение</option>
+              <option value="rejection">Отказ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Направление</label>
+            <select id="i-direction" class="input">
+              <option value="outbound">Исходящее</option>
+              <option value="inbound">Входящее</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Суть</label>
+          <textarea id="i-summary" class="input" style="max-width:100%;min-height:50px;"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Результат</label>
+            <select id="i-outcome" class="input">
+              <option value="">—</option>
+              <option value="pending">Ожидание</option>
+              <option value="working">Подготовка</option>
+              <option value="on_hold">На холд</option>
+              <option value="positive">Успешно</option>
+              <option value="negative">Не успешно</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Дата след. действия</label>
+            <div style="display:flex;gap:4px;">
+              <input id="i-next-action" class="input" type="date" style="flex:1;">
+              <select id="i-next-time" class="input" style="width:auto;">
+                <option value="">—</option>
+                <option value="09:00">09:00</option>
+                <option value="09:30">09:30</option>
+                <option value="10:00">10:00</option>
+                <option value="10:30">10:30</option>
+                <option value="11:00">11:00</option>
+                <option value="11:30">11:30</option>
+                <option value="12:00">12:00</option>
+                <option value="12:30">12:30</option>
+                <option value="13:00">13:00</option>
+                <option value="13:30">13:30</option>
+                <option value="14:00">14:00</option>
+                <option value="14:30">14:30</option>
+                <option value="15:00">15:00</option>
+                <option value="15:30">15:30</option>
+                <option value="16:00">16:00</option>
+                <option value="16:30">16:30</option>
+                <option value="17:00">17:00</option>
+                <option value="17:30">17:30</option>
+                <option value="18:00">18:00</option>
+                <option value="18:30">18:30</option>
+                <option value="19:00">19:00</option>
+                <option value="19:30">19:30</option>
+                <option value="20:00">20:00</option>
+                <option value="20:30">20:30</option>
+                <option value="21:00">21:00</option>
+                <option value="21:30">21:30</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-sm">Добавить</button>
+      </form>
+    </details>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.sort-indicator { font-size:11px;margin-left:3px;color:#888; }
+.sort-indicator.active { color:#e94560; }
+.copy-btn { padding:2px 8px;font-size:11px; }
+.cal-month { flex:1;min-width:150px; }
+.cal-month table { width:100%;border-collapse:collapse;font-size:12px; }
+.cal-month th { font-size:10px;color:#888;padding:2px;text-align:center;font-weight:400; }
+.cal-month td { text-align:center;padding:2px;cursor:pointer;border-radius:4px; }
+.cal-month td:hover { background:#eee; }
+.cal-month td.cal-today { font-weight:700;color:#e94560!important; }
+.cal-month td.cal-today.cal-has { background:#d4edda; }
+.cal-month td.cal-today.cal-done { background:#d4edda; }
+.cal-month td.cal-today.cal-overdue { background:#f8d7da; }
+.cal-month td.cal-weekend { background:#e8e8e8; }
+.cal-month td.cal-weekend.cal-today { background:#fff0f0; }
+.cal-month td.cal-has { background:#d4edda;color:#155724;font-weight:600; }
+.cal-month td.cal-has:hover { background:#c3e6cb; }
+.cal-month td.cal-done { background:#d4edda;color:#155724;font-weight:600; }
+.cal-month td.cal-done:hover { background:#c3e6cb; }
+.cal-month td.cal-overdue { background:#f8d7da;color:#721c24;font-weight:600; }
+.cal-month td.cal-overdue:hover { background:#f5c6cb; }
+.cal-month td.cal-selected { outline:2px solid #007bff;outline-offset:-2px; }
+.cal-month td.cal-other { color:#ccc; }
+.cal-month td.cal-empty { cursor:default; }
+.cal-month td.cal-empty:hover { background:transparent; }
+</style>
+
+<script>
+const PRIORITY_LABELS = { S: 'Активно', B: 'Перспективно', C: 'В базе' };
+const PRIORITY_COLORS = { S: '#e94560', B: '#856404', C: '#666' };
+const PRIORITY_ORDER = { S: 0, B: 1, C: 2 };
+
+function priorityColor(p, nextActionDate) {
+  const base = PRIORITY_COLORS[p] || '#666';
+  if (p === 'C' || !nextActionDate) return base;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(nextActionDate);
+  return d < today ? '#e94560' : '#007bff';
+}
+let viewMode = ''; // '' | 'company' | 'priority' | 'date'
+const TYPE_LABELS = { communication: 'Коммуникация', in_progress: 'В работе', on_hold: 'На стопе', offer: 'Оффер/Предложение', rejection: 'Отказ', applied: 'Коммуникация' };
+const DIRECTION_LABELS = { outbound: '→ Исх', inbound: '← Вх' };
+const DIRECTION_FULL = { outbound: 'Исходящее', inbound: 'Входящее' };
+const OUTCOME_COLORS = { pending: '#856404', working: '#007bff', on_hold: '#6c757d', positive: '#155724', negative: '#721c24' };
+const OUTCOME_LABELS = { pending: 'Ожидание', working: 'Подготовка', on_hold: 'На холде', positive: 'Успешно', negative: 'Не успешно' };
+const TYPE_ICONS = { communication: '💬', in_progress: '⚙️', on_hold: '⏸️', offer: '🎯', rejection: '🚫' };
+
+let allContacts = [];
+let sortColumn = '';
+let sortDir = 'asc';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadContacts();
+  await loadCompanyDropdowns();
+
+  // Default to 'date' mode with today selected
+  viewMode = 'date';
+  document.getElementById('view-date').className = 'btn btn-sm btn-active';
+
+  await loadCalendarStatus();
+  await loadDueActions();
+  renderCalendar();
+  await renderDateInfo(new Date().toISOString().slice(0, 10));
+  applyFilters();
+  // Auto-open contact from URL param (only once — clean URL after)
+  const params = new URLSearchParams(window.location.search);
+  const cid = params.get('contact_id');
+  if (cid) {
+    setTimeout(() => showContact(parseInt(cid)), 300);
+    history.replaceState(null, '', location.pathname);
+  }
+  // Close modal on outside click
+  document.getElementById('contact-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  // Close modal on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (document.getElementById('contact-modal').style.display === 'flex') closeModal();
+      if (document.getElementById('vacancy-modal') && document.getElementById('vacancy-modal').style.display !== 'none') closeVacancyModal();
+    }
+  });
+});
+
+function fmtTime(t) {
+  return t ? (t.includes(' ') ? t.slice(11,16) : t.slice(0,5)) : '';
+}
+function fmtDate(d) {
+  return d ? d.slice(8,10) + '.' + d.slice(5,7) + '.' + d.slice(2,4) : '';
+}
+function bannerItemHtml(c) {
+  const typeLabel = c.last_action_type ? (TYPE_LABELS[c.last_action_type] || c.last_action_type) : '';
+  const dirLabel = c.last_action_type ? (DIRECTION_LABELS[c.last_action_direction] || '') : '';
+  const outcomeLabel = c.outcome ? (OUTCOME_LABELS[c.outcome] || '') : '';
+  const outcomeColor = c.outcome ? (OUTCOME_COLORS[c.outcome] || '#888') : '#888';
+  return `<div style="padding:5px 0;font-size:13px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #f0f0f0;">
+    <span style="width:115px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#555;font-weight:500;flex-shrink:0;">
+      ${c.company_name || '<span style="color:#999;">—</span>'}
+    </span>
+    <span style="width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+      <a href="#" onclick="event.preventDefault();showContact(${c.id})" style="color:inherit;text-decoration:underline;cursor:pointer;">${c.name}</a>
+    </span>
+    <span style="flex-shrink:0;font-size:11px;color:#555;min-width:80px;">
+      ${typeLabel ? `${dirLabel ? dirLabel + ' ' : ''}${typeLabel}` : '<span style="color:#ccc;">—</span>'}
+    </span>
+    ${outcomeLabel ? `<span style="flex-shrink:0;font-size:11px;padding:1px 5px;border-radius:3px;background:${outcomeColor}15;color:${outcomeColor};font-weight:500;">${outcomeLabel}</span>` : ''}
+    <span style="width:60px;text-align:right;font-weight:600;flex-shrink:0;">${fmtDate(c.next_action_date)}</span>
+    <span style="width:45px;text-align:right;${c.next_action_time ? 'color:#e94560;font-weight:600;' : ''}flex-shrink:0;">${fmtTime(c.next_action_time)}</span>
+    <span style="flex-shrink:0;">${prioritySelect(c.id, c.priority || 'C')}</span>
+    <span style="margin-left:auto;flex-shrink:0;">
+      <button style="background:transparent;color:#888;border:1px solid #aaa;padding:0 4px;font-size:10px;cursor:pointer;border-radius:2px;font-weight:bold;line-height:1;height:16px;min-width:16px;display:inline-flex;align-items:center;justify-content:center;" onclick="event.stopPropagation();markInteractionDone(${c.interaction_id})" title="Отметить выполненным">✓</button>
+    </span>
+  </div>`;
+}
+
+async function loadDueActions() {
+  try {
+    const isDateMode = viewMode === 'date';
+    const [todayData, overdueData, doneTodayData, tomorrowData, thisweekData, nextweekData] = await Promise.all([
+      api('/api/contacts/due-for-action?mode=today'),
+      api('/api/contacts/due-for-action?mode=overdue'),
+      api('/api/contacts/due-for-action?mode=done_today'),
+      isDateMode ? api('/api/contacts/due-for-action?mode=tomorrow') : Promise.resolve({items:[]}),
+      isDateMode ? api('/api/contacts/due-for-action?mode=thisweek') : Promise.resolve({items:[]}),
+      isDateMode ? api('/api/contacts/due-for-action?mode=nextweek') : Promise.resolve({items:[]})
+    ]);
+    const overdueBanner = document.getElementById('overdue-banner');
+    const overdueList = document.getElementById('overdue-list');
+    const todayBanner = document.getElementById('today-banner');
+    const todayList = document.getElementById('today-list');
+    const tomorrowBanner = document.getElementById('tomorrow-banner');
+    const tomorrowList = document.getElementById('tomorrow-list');
+    const thisweekBanner = document.getElementById('thisweek-banner');
+    const thisweekList = document.getElementById('thisweek-list');
+    const nextweekBanner = document.getElementById('nextweek-banner');
+    const nextweekList = document.getElementById('nextweek-list');
+    const doneTodayBanner = document.getElementById('done-today-banner');
+    const doneTodayList = document.getElementById('done-today-list');
+
+    overdueBanner.style.display = (overdueData.items && overdueData.items.length) ? 'block' : 'none';
+    if (overdueData.items && overdueData.items.length) {
+      overdueList.innerHTML = overdueData.items.map(c => bannerItemHtml(c)).join('');
+    }
+
+    todayBanner.style.display = (todayData.items && todayData.items.length) ? 'block' : 'none';
+    if (todayData.items && todayData.items.length) {
+      todayList.innerHTML = todayData.items.map(c => bannerItemHtml(c)).join('');
+    }
+
+    tomorrowBanner.style.display = isDateMode && tomorrowData.items?.length ? 'block' : 'none';
+    if (tomorrowData.items?.length) {
+      tomorrowList.innerHTML = tomorrowData.items.map(c => bannerItemHtml(c)).join('');
+    }
+
+    thisweekBanner.style.display = isDateMode && thisweekData.items?.length ? 'block' : 'none';
+    if (thisweekData.items?.length) {
+      thisweekList.innerHTML = thisweekData.items.map(c => bannerItemHtml(c)).join('');
+    }
+
+    nextweekBanner.style.display = isDateMode && nextweekData.items?.length ? 'block' : 'none';
+    if (nextweekData.items?.length) {
+      nextweekList.innerHTML = nextweekData.items.map(c => bannerItemHtml(c)).join('');
+    }
+
+    doneTodayBanner.style.display = isDateMode && doneTodayData.items?.length ? 'block' : 'none';
+    if (doneTodayData.items?.length) {
+      doneTodayList.innerHTML = doneTodayData.items.map(c =>
+        `<div style="padding:5px 0;font-size:13px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #f0f0f0;">
+          <span style="width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#28a745;font-weight:500;flex-shrink:0;">
+            ${c.company_name || '<span style="color:#999;">—</span>'}
+          </span>
+          <span style="width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+            <a href="#" onclick="event.preventDefault();showContact(${c.id})" style="color:inherit;text-decoration:underline;cursor:pointer;">${c.name}</a>
+          </span>
+          <span style="color:#28a745;width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+            выполнено
+          </span>
+          <span style="width:65px;text-align:right;color:#28a745;font-weight:600;flex-shrink:0;">${fmtDate(c.next_action_date)}</span>
+          <span style="width:50px;text-align:right;color:#28a745;flex-shrink:0;">${fmtTime(c.next_action_time)}</span>
+          <span style="flex-shrink:0;">${prioritySelect(c.id, c.priority || 'C')}</span>
+          <span style="margin-left:auto;flex-shrink:0;">
+            <button style="background:transparent;color:#28a745;padding:0 4px;font-size:12px;cursor:pointer;border-radius:2px;border:none;font-weight:bold;line-height:1;height:16px;display:inline-flex;align-items:center;" onclick="event.stopPropagation();markInteractionUndone(${c.interaction_id})" title="Отменить выполнение">✓</button>
+          </span>
+        </div>`
+      ).join('');
+    }
+
+    const hasItems = todayData.items?.length || overdueData.items?.length ||
+      (isDateMode && (doneTodayData.items?.length || tomorrowData.items?.length || thisweekData.items?.length || nextweekData.items?.length));
+    document.getElementById('due-empty').style.display = hasItems ? 'none' : 'block';
+  } catch(e) {}
+}
+
+async function markInteractionDone(interactionId) {
+  try {
+    await api('/api/interactions/' + interactionId + '/complete', { method: 'POST' });
+    const contactId = document.getElementById('i-contact-id').value;
+    if (contactId) await showContact(parseInt(contactId));
+    await loadContacts();
+    await refreshUI();
+  } catch(e) { alert('Ошибка: ' + e.message); }
+}
+
+async function markInteractionUndone(interactionId) {
+  try {
+    await api('/api/interactions/' + interactionId + '/uncomplete', { method: 'POST' });
+    const contactId = document.getElementById('i-contact-id').value;
+    if (contactId) await showContact(parseInt(contactId));
+    await loadContacts();
+    await refreshUI();
+  } catch(e) { alert('Ошибка: ' + e.message); }
+}
+
+async function deleteInteraction(interactionId, contactId, btnEl) {
+  if (btnEl && btnEl.dataset.confirming) {
+    // Second click — confirm
+    try {
+      await api('/api/interactions/' + interactionId, { method: 'DELETE' });
+      if (contactId) await showContact(contactId);
+      await loadContacts();
+      await refreshUI();
+    } catch(e) { alert('Ошибка удаления: ' + e.message); }
+  } else {
+    // First click — ask confirmation inline
+    if (!btnEl) return;
+    btnEl.dataset.confirming = '1';
+    const orig = btnEl.textContent;
+    btnEl.textContent = 'Удалить?';
+    btnEl.style.background = '#d32f2f';
+    btnEl.style.color = 'white';
+    btnEl.style.border = 'none';
+    setTimeout(() => {
+      btnEl.textContent = orig;
+      btnEl.style.background = 'transparent';
+      btnEl.style.color = '#d32f2f';
+      btnEl.style.border = 'none';
+      delete btnEl.dataset.confirming;
+    }, 3000);
+  }
+}
+
+let companiesList = [];
+
+async function loadCompanyDropdowns() {
+  try {
+    const data = await api('/api/companies/list');
+    companiesList = data.items || [];
+    const datalist = document.getElementById('company-suggestions');
+    datalist.innerHTML = companiesList.map(c => `<option value="${c.name}">`).join('');
+    document.getElementById('company-filter').innerHTML = '<option value="">Все</option>' +
+      companiesList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function quickAddCompany() {
+  const name = prompt('Название компании:');
+  if (!name || !name.trim()) return;
+  try {
+    const resp = await fetch('/api/companies/quick', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: name.trim()}) });
+    const result = await resp.json();
+    if (result.ok) {
+      await loadCompanyDropdowns();
+      document.getElementById('c-company').value = name.trim();
+    } else {
+      alert('Ошибка: ' + (result.error || 'неизвестная'));
+    }
+  } catch(e) { alert('Ошибка создания компании'); }
+}
+
+async function loadContacts() {
+  try {
+    const data = await api('/api/contacts');
+    allContacts = data.items || [];
+  } catch(e) {
+    allContacts = [];
+    document.getElementById('contacts-list').innerHTML = '<div class="card" style="text-align:center;color:#d32f2f;padding:40px;">Ошибка загрузки: ' + e.message + '</div>';
+    return;
+  }
+  // Load vacancy counts by company
+  try {
+    const vc = await api('/api/vacancies/by-company');
+    window.vacancyCountsByCompany = {};
+    (vc.items || []).forEach(x => { window.vacancyCountsByCompany[x.name] = x.count; });
+  } catch(e) { window.vacancyCountsByCompany = {}; }
+}
+
+async function refreshUI() {
+  await loadCalendarStatus();
+  renderCalendar();
+  await loadDueActions();
+  applyFilters();
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  applyFilters();
+}
+
+// ─── Calendar ─────────────────────────────────
+let calOffset = 0;
+let calSelectedDate = null;
+let dateFilterActive = false;
+let calStatus = {};
+
+async function loadCalendarStatus() {
+  try {
+    calStatus = await api('/api/contacts/calendar-status');
+  } catch(e) { calStatus = {}; }
+}
+
+function renderCalendar() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + calOffset;
+
+  const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const months = [0, 1];
+  let html = '';
+  months.forEach((m, idx) => {
+    const y = year + Math.floor((month + m) / 12);
+    const mo = (month + m) % 12;
+    html += `<div class="cal-month"><div style="text-align:center;font-size:12px;font-weight:600;margin-bottom:4px;">${monthNames[mo]} ${y}</div><table>`;
+    html += '<tr>' + ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => `<th>${d}</th>`).join('') + '</tr>';
+
+    const firstDay = new Date(y, mo, 1);
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+    let day = 1;
+    for (let row = 0; row < 6; row++) {
+      if (day > daysInMonth) break;
+      html += '<tr>';
+      for (let col = 0; col < 7; col++) {
+        if ((row === 0 && col < startDow) || day > daysInMonth) {
+          html += '<td class="cal-empty"></td>';
+        } else {
+          const dateStr = `${y}-${String(mo + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isToday = new Date().toISOString().slice(0, 10) === dateStr;
+          const isWeekend = col >= 5; // Sat=5, Sun=6
+          const isPast = dateStr < new Date().toISOString().slice(0, 10);
+          const isFuture = dateStr > new Date().toISOString().slice(0, 10);
+          const isSelected = calSelectedDate === dateStr;
+          const status = calStatus[dateStr];
+
+          const classes = ['cal-day'];
+          if (isWeekend) classes.push('cal-weekend');
+          if (isToday) classes.push('cal-today');
+          if (isSelected) classes.push('cal-selected');
+
+          if (status) {
+            if (isFuture) {
+              classes.push('cal-has'); // future planned — green
+            } else if (isPast) {
+              if (status.pending > 0) {
+                classes.push('cal-overdue'); // past with unfinished — red
+              } else {
+                classes.push('cal-done'); // past all done — green
+              }
+            } else {
+              // today — use status for additional highlight
+              if (status.pending > 0) classes.push('cal-has');
+              else if (status.completed > 0) classes.push('cal-done');
+            }
+          }
+
+          html += `<td class="${classes.join(' ')}" onclick="onDateClick('${dateStr}',${day})">${day}</td>`;
+          day++;
+        }
+      }
+      html += '</tr>';
+    }
+    html += '</table></div>';
+  });
+
+  document.getElementById('cal-grid').innerHTML = html;
+  const currentLabel = monthNames[((month % 12) + 12) % 12] + ' ' + year;
+  document.getElementById('cal-header').textContent = currentLabel;
+}
+
+async function renderDateInfo(dateStr) {
+  calSelectedDate = dateStr;
+  document.getElementById('cal-date-info').style.display = 'block';
+  document.getElementById('cal-selected-date').textContent = '📅 ' + dateStr;
+
+  // Planned actions for this date from allContacts
+  const planned = (allContacts || []).filter(c => c.next_action_date === dateStr);
+  const plannedIds = new Set(planned.map(c => c.id));
+
+  // Fetch completed actions on this date
+  let done = [];
+  try {
+    const resp = await api('/api/contacts/completed-on?date=' + dateStr);
+    done = (resp.items || []).filter(c => !plannedIds.has(c.id));
+  } catch(e) {}
+
+  const total = planned.length + done.length;
+  document.getElementById('cal-filter-count').textContent = `— ${total} ${total === 1 ? 'контакт' : 'контактов'}`;
+
+  let html = '';
+  if (planned.length) {
+    html += '<div style="font-size:11px;color:#e94560;margin-top:2px;font-weight:600;">Запланированные:</div>';
+    html += planned.map(c =>
+      `<div style="padding:3px 0;font-size:12px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:4px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PRIORITY_COLORS[c.priority] || '#666'};flex-shrink:0;"></span>
+        <a href="#" onclick="event.preventDefault();showContact(${c.id})" style="color:inherit;text-decoration:underline;cursor:pointer;">${c.name}</a>
+        ${c.company_name ? '<span style="color:#888;">· ' + c.company_name + '</span>' : ''}
+        ${c.next_action_time ? '<span style="color:#28a745;font-weight:600;margin-left:auto;">' + c.next_action_time + '</span>' : ''}
+      </div>`
+    ).join('');
+  }
+  if (done.length) {
+    html += '<div style="font-size:11px;color:#28a745;margin-top:4px;font-weight:600;">Выполненные:</div>';
+    html += done.map(c =>
+      `<div style="padding:3px 0;font-size:12px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:4px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PRIORITY_COLORS[c.priority] || '#666'};flex-shrink:0;"></span>
+        <a href="#" onclick="event.preventDefault();showContact(${c.id})" style="color:inherit;text-decoration:underline;cursor:pointer;">${c.name}</a>
+        ${c.company_name ? '<span style="color:#888;">· ' + c.company_name + '</span>' : ''}
+        <span style="color:#28a745;margin-left:auto;">✓</span>
+      </div>`
+    ).join('');
+  }
+  if (!html) {
+    html = '<div style="padding:6px 0;font-size:12px;color:#999;">Нет действий на эту дату</div>';
+  }
+  document.getElementById('cal-filter-list').innerHTML = html;
+  renderCalendar();
+}
+
+async function onDateClick(dateStr, day) {
+  if (calSelectedDate === dateStr) return;
+  dateFilterActive = true;
+  await renderDateInfo(dateStr);
+  // Only switch to date mode if currently in default date mode (no other mode selected explicitly)
+  if (viewMode !== 'company' && viewMode !== 'priority') {
+    viewMode = 'date';
+    document.getElementById('view-company').className = 'btn btn-sm';
+    document.getElementById('view-priority').className = 'btn btn-sm';
+    document.getElementById('view-date').className = 'btn btn-sm btn-active';
+  }
+  loadDueActions();
+  applyFilters();
+}
+
+function clearCalendarFilter() {
+  dateFilterActive = false;
+  calendarToday();
+}
+
+async function calendarPrev() { calOffset--; await loadCalendarStatus(); renderCalendar(); }
+async function calendarNext() { calOffset++; await loadCalendarStatus(); renderCalendar(); }
+async function calendarToday() { calOffset = 0; dateFilterActive = false; await loadCalendarStatus(); await renderDateInfo(new Date().toISOString().slice(0, 10)); loadDueActions(); applyFilters(); }
+
+async function setView(mode) {
+  viewMode = mode;
+  document.getElementById('view-company').className = 'btn btn-sm' + (mode === 'company' ? ' btn-active' : '');
+  document.getElementById('view-priority').className = 'btn btn-sm' + (mode === 'priority' ? ' btn-active' : '');
+  document.getElementById('view-date').className = 'btn btn-sm' + (mode === 'date' ? ' btn-active' : '');
+  await loadDueActions();
+  renderCalendar();
+  applyFilters();
+}
+
+function tgIcon(username) {
+  return `<svg viewBox="0 0 32 32" style="width:16px;height:16px;vertical-align:middle;margin-right:2px;fill:#adb5bd;" xmlns="http://www.w3.org/2000/svg"><path d="m29.919 6.163l-4.225 19.925c-.319 1.406-1.15 1.756-2.331 1.094l-6.438-4.744l-3.106 2.988c-.344.344-.631.631-1.294.631l.463-6.556L24.919 8.72c.519-.462-.113-.719-.806-.256l-14.75 9.288l-6.35-1.988c-1.381-.431-1.406-1.381.288-2.044l24.837-9.569c1.15-.431 2.156.256 1.781 2.013z"/></svg>${username}`;
+}
+
+function contactCell(c) {
+  const tg = c.telegram && !/^(не найден|нет|—|-)$/i.test(c.telegram.trim()) ? tgIcon(c.telegram) : '';
+  const email = c.email && !/^(не найден|нет|—|-)$/i.test(c.email.trim()) ? '<span style="color:#adb5bd;">✉</span> ' + c.email : '';
+  return [tg, email].filter(Boolean).join('<br>') || '—';
+}
+
+function applyFilters() {
+  const priority = document.getElementById('priority-filter').value;
+  const sourceFilter = document.getElementById('source-filter').value.trim().toLowerCase();
+  const companyId = document.getElementById('company-filter').value;
+  const search = document.getElementById('search-input').value.trim().toLowerCase();
+
+  let items = allContacts;
+  if (priority) items = items.filter(c => c.priority === priority);
+  if (sourceFilter) items = items.filter(c => (c.source || '').toLowerCase().includes(sourceFilter));
+  if (companyId) items = items.filter(c => c.company_id === parseInt(companyId));
+  if (search) {
+    items = items.filter(c =>
+      (c.name || '').toLowerCase().includes(search) ||
+      (c.role || '').toLowerCase().includes(search) ||
+      (c.company_name || '').toLowerCase().includes(search)
+    );
+  }
+
+  // Calendar date filter (only in date mode when user clicks a date)
+  if (viewMode === 'date' && dateFilterActive && calSelectedDate) {
+    items = items.filter(c => c.next_action_date === calSelectedDate);
+  }
+
+  const container = document.getElementById('contacts-list');
+
+  if (!viewMode) {
+    container.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:40px;">Выберите режим отображения</div>';
+    return;
+  }
+
+  // In date mode without a clicked date: banners are the view, no grouped list
+  if (viewMode === 'date' && !dateFilterActive) {
+    container.innerHTML = '';
+    return;
+  }
+
+  if (!items.length) {
+    container.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:40px;">Нет контактов</div>';
+    return;
+  }
+  if (viewMode === 'company') {
+    renderByCompany(items, container);
+  } else if (viewMode === 'priority') {
+    renderByPriority(items, container);
+  } else if (viewMode === 'date') {
+    renderByDate(items, container);
+  }
+}
+
+const TBL_COLS = '<colgroup><col style="width:16%;"><col style="width:16%;"><col style="width:12%;"><col style="width:22%;"><col style="width:10%;"><col style="width:24%;"></colgroup>';
+const TBL_HEAD_PRIORITY = '<thead><tr><th>Компания</th><th>Имя</th><th>Роль</th><th>Контакты</th><th>Источник</th><th></th></tr></thead>';
+const TBL_HEAD_COMPANY = '<thead><tr><th>Компания</th><th>Имя</th><th>Роль</th><th>Контакты</th><th>Источник</th><th></th></tr></thead>';
+
+function prioritySelect(id, current) {
+  const opts = ['S','B','C'].map(p =>
+    `<option value="${p}"${p === current ? ' selected' : ''}>${PRIORITY_LABELS[p]}</option>`
+  ).join('');
+  return `<select onchange="event.stopPropagation();updatePriority(${id},this.value)" onclick="event.stopPropagation()" style="margin-left:4px;font-size:10px;padding:0 2px;border:1px solid ${PRIORITY_COLORS[current] || '#666'};border-radius:3px;background:transparent;color:${PRIORITY_COLORS[current] || '#666'};cursor:pointer;vertical-align:middle;">${opts}</select>`;
+}
+
+async function updatePriority(id, priority) {
+  try {
+    const resp = await fetch('/api/contacts/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({priority: priority}) });
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert('Ошибка ' + resp.status + ': ' + text.slice(0, 200));
+      return;
+    }
+    const result = await resp.json();
+    if (result.ok) {
+      const c = allContacts.find(x => x.id === id);
+      if (c) c.priority = priority;
+      applyFilters();
+    }
+  } catch(e) { alert('Ошибка: ' + e.message); }
+}
+
+function renderByCompany(items, container) {
+  const companyGroups = {};
+  items.forEach(c => {
+    const key = c.company_name || c.company_id || 'Без компании';
+    if (!companyGroups[key]) companyGroups[key] = { id: c.company_id, name: key, contacts: [] };
+    companyGroups[key].contacts.push(c);
+  });
+  const companyOrder = Object.keys(companyGroups).sort((a, b) => {
+    if (a === 'Без компании') return 1;
+    if (b === 'Без компании') return -1;
+    const score = (name) => Math.min(...(companyGroups[name].contacts.map(c => PRIORITY_ORDER[c.priority || 'B'] || 99)));
+    const sa = score(a), sb = score(b);
+    if (sa !== sb) return sa - sb;
+    return a.localeCompare(b);
+  });
+
+  container.innerHTML = companyOrder.map(key => {
+    const g = companyGroups[key];
+    const topP = g.contacts.reduce((best, c) => {
+      const p = PRIORITY_ORDER[c.priority || 'B'] || 99;
+      return p < (PRIORITY_ORDER[best] || 99) ? (c.priority || 'B') : best;
+    }, 'B');
+    const vacCount = window.vacancyCountsByCompany ? (window.vacancyCountsByCompany[g.name] || 0) : null;
+    return `<div style="margin-bottom:16px;">
+      <h3 style="color:${PRIORITY_COLORS[topP]};margin-bottom:8px;font-size:14px;display:flex;align-items:center;gap:8px;">
+        <span>${g.name || 'Без компании'}</span>
+        <span style="font-size:11px;font-weight:400;color:#888;">(${g.contacts.length} ${g.contacts.length === 1 ? 'контакт' : 'контактов'})</span>
+        ${vacCount !== null ? `<a href="/vacancies?company=${encodeURIComponent(g.name)}" style="font-size:11px;font-weight:400;color:#007bff;text-decoration:none;margin-left:auto;">${vacCount} вакансий →</a>` : ''}
+      </h3>
+      <table class="table" style="table-layout:fixed;">${TBL_COLS}${TBL_HEAD_COMPANY}<tbody>${g.contacts.map(c => `
+          <tr style="cursor:pointer;" onclick="showContact(${c.id})">
+            <td style="color:#aaa;">•</td>
+            <td><strong>${c.name}</strong> ${prioritySelect(c.id, c.priority || 'B')}</td>
+            <td>${c.role || '—'}</td>
+            <td style="font-size:12px;">${contactCell(c)}</td>
+            <td><span class="badge">${c.source || 'other'}</span></td>
+            <td style="text-align:right;"><button class="btn btn-sm" style="background:transparent;color:#ccc;padding:2px 6px;font-size:11px;" onclick="event.stopPropagation();deleteContact(${c.id})" title="Удалить">✕</button></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function renderByPriority(items, container) {
+  const groups = { S: [], B: [], C: [] };
+  items.forEach(c => { const p = c.priority || 'B'; if (groups[p]) groups[p].push(c); else groups['B'].push(c); });
+  container.innerHTML = Object.entries(groups).map(([p, pts]) => {
+    if (!pts.length) return '';
+    const byCo = {};
+    pts.forEach(c => {
+      const key = c.company_name || 'Без компании';
+      if (!byCo[key]) byCo[key] = [];
+      byCo[key].push(c);
+    });
+    const ordered = Object.keys(byCo).sort((a, b) => {
+      if (a === 'Без компании') return 1; if (b === 'Без компании') return -1;
+      const d = byCo[b].length - byCo[a].length;
+      if (d) return d; return a.localeCompare(b);
+    });
+    return `<div style="margin-bottom:16px;">
+      <h3 style="color:${PRIORITY_COLORS[p]};margin-bottom:8px;font-size:14px;">${PRIORITY_LABELS[p]} (${pts.length})</h3>
+      <table class="table" style="table-layout:fixed;">${TBL_COLS}${TBL_HEAD_PRIORITY}<tbody>${ordered.map(co => byCo[co].map(c => `
+          <tr style="cursor:pointer;" onclick="showContact(${c.id})">
+            <td><strong>${co === 'Без компании' ? '<span style="color:#999;">—</span>' : co}</strong></td>
+            <td>${c.name} ${prioritySelect(c.id, c.priority || 'B')}</td>
+            <td>${c.role || '—'}</td>
+            <td style="font-size:12px;">${contactCell(c)}</td>
+            <td><span class="badge">${c.source || 'other'}</span></td>
+            <td style="text-align:right;"><button class="btn btn-sm" style="background:transparent;color:#ccc;padding:2px 6px;font-size:11px;" onclick="event.stopPropagation();deleteContact(${c.id})" title="Удалить">✕</button></td>
+          </tr>
+        `).join('')).join('')}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function renderByDate(items, container) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Calendar week boundaries (Mon-Sun)
+  const dow = today.getDay(); // 0=Sun, 1=Mon ...
+  const monOffset = dow === 0 ? -6 : 1 - dow;
+  const thisMon = new Date(today);
+  thisMon.setDate(today.getDate() + monOffset);
+  const thisSun = new Date(thisMon);
+  thisSun.setDate(thisMon.getDate() + 6);
+  const nextMon = new Date(thisSun);
+  nextMon.setDate(thisSun.getDate() + 1);
+  const nextSun = new Date(nextMon);
+  nextSun.setDate(nextMon.getDate() + 6);
+
+  // Only contacts with next_action_date
+  let withDate = items.filter(c => c.next_action_date).map(c => {
+    const d = new Date(c.next_action_date + 'T00:00:00');
+    return { ...c, _dueDate: d };
+  });
+
+  // Sort by date ascending
+  withDate.sort((a, b) => a._dueDate - b._dueDate);
+
+  // Group into sections
+  const groups = { overdue: [], today: [], tomorrow: [], thisWeek: [], nextWeek: [], later: [] };
+  withDate.forEach(c => {
+    const d = c._dueDate;
+    if (d < today) { groups.overdue.push(c); return; }
+    if (+d === +today) { groups.today.push(c); return; }
+    if (+d === +tomorrow) { groups.tomorrow.push(c); return; }
+    if (+d >= +thisMon && +d <= +thisSun) { groups.thisWeek.push(c); return; }
+    if (+d >= +nextMon && +d <= +nextSun) { groups.nextWeek.push(c); return; }
+    groups.later.push(c);
+  });
+
+  const sectionLabels = {
+    overdue: 'Просрочено',
+    today: 'Сегодня',
+    tomorrow: 'Завтра',
+    thisWeek: 'На этой неделе',
+    nextWeek: 'На следующей неделе',
+    later: 'Позже'
+  };
+
+  const sectionColors = {
+    overdue: '#e94560',
+    today: '#d32f2f',
+    tomorrow: '#856404',
+    thisWeek: '#28a745',
+    nextWeek: '#007bff',
+    later: '#666'
+  };
+
+  let html = '';
+  for (const [key, label] of Object.entries(sectionLabels)) {
+    const items = groups[key];
+    if (!items.length) continue;
+    html += `
+      <div class="card" style="margin-bottom:12px;border-left:4px solid ${sectionColors[key]};">
+        <h3 style="color:${sectionColors[key]};margin-bottom:8px;font-size:14px;">${label} (${items.length})</h3>
+        ${items.map(c => {
+          return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+            <span style="width:115px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#555;font-weight:500;flex-shrink:0;">
+              ${c.company_name || '<span style="color:#999;">—</span>'}
+            </span>
+            <span style="width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+              <a href="#" onclick="event.preventDefault();showContact(${c.id})" style="color:${priorityColor(c.priority, c.next_action_date)};text-decoration:underline;cursor:pointer;">${c.name}</a>
+            </span>
+            <span style="flex-shrink:0;font-size:11px;color:#555;min-width:80px;">
+              ${c.last_action_type ? `${(DIRECTION_LABELS[c.last_action_direction] || '') + ' '}${TYPE_LABELS[c.last_action_type] || c.last_action_type}` : '<span style="color:#ccc;">—</span>'}
+            </span>
+            ${c.outcome ? `<span style="flex-shrink:0;font-size:11px;padding:1px 5px;border-radius:3px;background:${OUTCOME_COLORS[c.outcome]}15;color:${OUTCOME_COLORS[c.outcome]};font-weight:500;">${OUTCOME_LABELS[c.outcome]}</span>` : ''}
+            <span style="width:60px;text-align:right;font-weight:600;color:${sectionColors[key]};flex-shrink:0;">${fmtDate(c.next_action_date)}</span>
+            <span style="width:45px;text-align:right;${c.next_action_time ? 'color:#e94560;font-weight:600;' : ''}flex-shrink:0;">${fmtTime(c.next_action_time)}</span>
+            <span style="flex-shrink:0;">${prioritySelect(c.id, c.priority || 'C')}</span>
+            ${c.interaction_id ? `<span style="margin-left:auto;flex-shrink:0;">
+      <button style="background:transparent;color:#888;border:1px solid #aaa;padding:0 4px;font-size:10px;cursor:pointer;border-radius:2px;font-weight:bold;line-height:1;height:16px;min-width:16px;display:inline-flex;align-items:center;justify-content:center;" onclick="event.stopPropagation();markInteractionDone(${c.interaction_id})" title="Отметить выполненным">✓</button>
+            </span>` : `<span style="margin-left:auto;flex-shrink:0;width:26px;"></span>`}
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+  container.innerHTML = html || '<div class="card" style="text-align:center;color:#999;padding:40px;">Нет запланированных действий</div>';
+}
+
+function toggleSort(column) {
+  if (sortColumn === column) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn = column;
+    sortDir = 'asc';
+  }
+  // Update indicators
+  document.querySelectorAll('.sort-indicator').forEach(el => {
+    if (el.id === 's-' + column) {
+      el.textContent = sortDir === 'asc' ? '▲' : '▼';
+      el.classList.add('active');
+    } else {
+      el.textContent = '';
+      el.classList.remove('active');
+    }
+  });
+  applyFilters();
+}
+
+function showAddContact() {
+  document.getElementById('modal-title').textContent = 'Новый контакт';
+  document.getElementById('contact-form').reset();
+  document.getElementById('contact-id').value = '';
+  document.getElementById('interactions-list').innerHTML = '';
+  document.getElementById('i-contact-id').value = '';
+  socialLinks = [];
+  renderSocialLinks();
+  phoneNumbers = [];
+  renderPhones();
+  document.getElementById('company-details-row').style.display = 'none';
+  document.getElementById('contact-modal').style.display = 'flex';
+}
+
+async function showContact(id) {
+  // Clear form first to prevent stale data display
+  document.getElementById('modal-title').textContent = 'Загрузка...';
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-notes').value = '';
+  document.getElementById('interactions-list').innerHTML = '<div style="color:#999;font-size:13px;">Загрузка...</div>';
+  document.getElementById('contact-modal').style.display = 'flex';
+
+  const data = await api('/api/contacts/' + id + '?_=' + Date.now());
+  if (!data || data.error) {
+    document.getElementById('modal-title').textContent = 'Ошибка загрузки';
+    document.getElementById('interactions-list').innerHTML = '<div style="color:#999;font-size:13px;">Не удалось загрузить контакт</div>';
+    return;
+  }
+  document.getElementById('modal-title').textContent = data.name;
+  document.getElementById('contact-id').value = data.id;
+  document.getElementById('c-name').value = data.name || '';
+  document.getElementById('c-role').value = data.role || '';
+  document.getElementById('c-company').value = data.company_name || '';
+  onCompanyChange();
+  document.getElementById('c-source').value = data.source || 'other';
+  document.getElementById('c-priority').value = data.priority || 'B';
+  document.getElementById('c-telegram').value = data.telegram || '';
+  document.getElementById('c-email').value = data.email || '';
+  document.getElementById('c-phone').value = data.phone || '';
+  socialLinks = Array.isArray(data.extra_contacts) ? data.extra_contacts.map(s => ({ label: s.label || s.type || '', url: s.url || s.value || '' })) : [];
+  renderSocialLinks();
+  phoneNumbers = Array.isArray(data.extra_phones) ? [...data.extra_phones] : [];
+  renderPhones();
+  document.getElementById('c-notes').value = data.notes || '';
+  document.getElementById('i-contact-id').value = data.id;
+
+  const list = document.getElementById('interactions-list');
+  if (data.interactions && data.interactions.length) {
+    // Sort newest first
+    const sorted = [...data.interactions].sort((a, b) => (b.id || 0) - (a.id || 0));
+    list.innerHTML = sorted.map(i =>
+      `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;display:flex;align-items:flex-start;gap:6px;${i.completed_at ? 'background:#f6fff6;border-left:3px solid #28a745;padding-left:8px;' : 'padding-left:11px;'}">
+        <div style="flex-shrink:0;padding-top:2px;">
+          ${i.completed_at
+            ? `<span style="color:#28a745;font-weight:bold;cursor:pointer;font-size:13px;" onclick="markInteractionUndone(${i.id})" title="Отменить выполнение">✓</span>`
+            : `<span style="color:#888;cursor:pointer;font-size:11px;border:1px solid #aaa;border-radius:2px;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;" onclick="markInteractionDone(${i.id})" title="Отметить выполненным">✓</span>`
+          }
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;">
+            <span>${TYPE_ICONS[i.type] || '💬'}</span>
+            <strong>${TYPE_LABELS[i.type] || i.type}</strong>
+            <span style="color:#888;font-size:11px;">${DIRECTION_FULL[i.direction] || ''}</span>
+            <span style="color:#888;font-size:12px;">${i.created_at ? i.created_at.slice(0, 10) : ''}</span>
+            <span style="color:${OUTCOME_COLORS[i.outcome] || '#666'};font-size:12px;padding:1px 5px;border-radius:3px;background:${OUTCOME_COLORS[i.outcome] ? OUTCOME_COLORS[i.outcome] + '15' : 'transparent'};">${OUTCOME_LABELS[i.outcome] || i.outcome || ''}</span>
+            ${i.next_action_date ? `<span style="color:#e94560;font-size:12px;">→ ${i.next_action_date}${i.next_action_time ? ' ' + i.next_action_time : ''}</span>` : ''}
+          </div>
+          <div style="color:#333;margin-top:2px;${i.completed_at ? 'color:#888;' : ''}">${i.summary || ''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button style="background:transparent;color:#888;padding:0 4px;font-size:11px;cursor:pointer;border:none;" onclick="editInteraction(${i.id})" title="Редактировать">✎</button>
+          <button style="background:transparent;color:#d32f2f;padding:0 4px;font-size:11px;cursor:pointer;border:none;" onclick="deleteInteraction(${i.id},${data.id},this)" title="Удалить">✕</button>
+        </div>
+      </div>`
+    ).join('');
+  } else {
+    list.innerHTML = '<div style="color:#999;font-size:13px;">Нет записей</div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('contact-modal').style.display = 'none';
+}
+
+async function saveContact() {
+  const id = document.getElementById('contact-id').value;
+  const companyName = document.getElementById('c-company').value.trim();
+  let matched = companiesList.find(c => c.name === companyName);
+  // Auto-create company if no exact match
+  if (!matched && companyName) {
+    try {
+      const cr = await fetch('/api/companies/quick', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: companyName}) });
+      const cj = await cr.json();
+      if (cj.ok && cj.id) {
+        matched = { id: cj.id, name: companyName };
+        await loadCompanyDropdowns();
+      }
+    } catch(e) {}
+  }
+  const data = {
+    name: document.getElementById('c-name').value,
+    role: document.getElementById('c-role').value || null,
+    company_id: matched ? matched.id : null,
+    source: document.getElementById('c-source').value,
+    priority: document.getElementById('c-priority').value,
+    telegram: document.getElementById('c-telegram').value || null,
+    email: document.getElementById('c-email').value || null,
+    phone: document.getElementById('c-phone').value || null,
+    extra_contacts: socialLinks.filter(s => s.label || s.url),
+    notes: document.getElementById('c-notes').value || null,
+  };
+  try {
+    const url = id ? '/api/contacts/' + id : '/api/contacts';
+    const method = id ? 'PUT' : 'POST';
+    const resp = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert('Ошибка ' + resp.status + ': ' + text.slice(0, 200));
+      return false;
+    }
+    const result = await resp.json();
+    if (result.ok) {
+      // Обновляем i-contact-id для нового контакта
+      if (result.contact && result.contact.id) {
+        document.getElementById('i-contact-id').value = result.contact.id;
+        document.getElementById('contact-id').value = result.contact.id;
+      }
+      const website = document.getElementById('c-company-website').value.trim();
+      const address = document.getElementById('c-company-address').value.trim();
+      if (matched && (website || address)) {
+        await fetch('/api/companies/' + matched.id, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ website: website || null, address: address || null })
+        });
+        loadCompanyDropdowns();
+      }
+      const ind = document.getElementById('save-indicator');
+      ind.style.display = 'inline';
+      setTimeout(() => { ind.style.display = 'none'; }, 2500);
+      document.getElementById('btn-save-contact').textContent = '✓ Сохранено';
+      document.getElementById('btn-save-contact').disabled = true;
+      setTimeout(() => {
+        document.getElementById('btn-save-contact').textContent = 'Сохранить';
+        document.getElementById('btn-save-contact').disabled = false;
+      }, 2500);
+      await loadContacts();
+      await refreshUI();
+    } else {
+      alert('Ошибка: ' + (result.error || 'неизвестная'));
+    }
+  } catch(e) { alert('Ошибка сохранения: ' + e.message); }
+  return false;
+}
+
+async function deleteContact(id) {
+  if (!confirm('Удалить контакт?')) return;
+  try {
+    await fetch('/api/contacts/' + id, { method: 'DELETE' });
+    await loadContacts();
+    await refreshUI();
+  } catch(e) { alert('Ошибка удаления'); }
+}
+
+async function saveInteraction() {
+  const id = document.getElementById('i-id').value;
+  const cid = parseInt(document.getElementById('i-contact-id').value);
+  if (!cid || isNaN(cid)) {
+    alert('Ошибка: контакт не выбран. Сохраните контакт и попробуйте снова.');
+    return false;
+  }
+  const data = {
+    contact_id: cid,
+    type: document.getElementById('i-type').value,
+    direction: document.getElementById('i-direction').value,
+    summary: document.getElementById('i-summary').value || null,
+    outcome: document.getElementById('i-outcome').value || null,
+    next_action_date: document.getElementById('i-next-action').value || null,
+    next_action_time: document.getElementById('i-next-time').value || null,
+  };
+  try {
+    const url = id ? '/api/interactions/' + id : '/api/interactions';
+    const method = id ? 'PUT' : 'POST';
+    const resp = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const result = await resp.json();
+    if (result.ok) {
+      // Reset form
+      document.getElementById('i-id').value = '';
+      document.getElementById('i-summary').value = '';
+      document.getElementById('i-next-action').value = '';
+      document.getElementById('i-next-time').value = '';
+      document.getElementById('i-outcome').value = '';
+      document.querySelector('#interaction-details summary').textContent = '+ Добавить взаимодействие';
+      if (data.contact_id) await showContact(data.contact_id);
+      await loadContacts();
+      await refreshUI();
+    } else {
+      alert('Ошибка: ' + (result.error || 'неизвестная'));
+    }
+  } catch(e) { alert('Ошибка сохранения: ' + e.message); }
+  return false;
+}
+
+function editInteraction(id) {
+  const detail = document.getElementById('interaction-details');
+  detail.open = true;
+  const contactId = parseInt(document.getElementById('i-contact-id').value);
+  fetch('/api/contacts/' + contactId).then(r => r.json()).then(data => {
+    const i = (data.interactions || []).find(x => x.id === id);
+    if (!i) return;
+    document.getElementById('i-id').value = i.id;
+    const oldTypeMap = { applied: 'communication', outreach: 'communication', call: 'communication', follow_up: 'communication', interview: 'communication' };
+    document.getElementById('i-type').value = oldTypeMap[i.type] || i.type;
+    document.getElementById('i-direction').value = i.direction || 'outbound';
+    document.getElementById('i-summary').value = i.summary || '';
+    document.getElementById('i-outcome').value = i.outcome || '';
+    document.getElementById('i-next-action').value = i.next_action_date || '';
+    document.getElementById('i-next-time').value = i.next_action_time || '';
+    document.querySelector('#interaction-details summary').textContent = '✎ Редактировать';
+  }).catch(() => {});
+}
+
+function copyField(id) {
+  const el = document.getElementById(id);
+  const val = el.value || el.textContent || '';
+  if (!val) return;
+  navigator.clipboard.writeText(val).catch(() => {
+    el.select();
+    document.execCommand('copy');
+  });
+  const orig = el.style.borderColor;
+  el.style.borderColor = '#28a745';
+  setTimeout(() => el.style.borderColor = orig, 1000);
+}
+
+// ─── Social links ──────────────────────────────────────
+let socialLinks = [];
+
+function addSocialLink(label, url) {
+  const container = document.getElementById('social-links-container');
+  const idx = socialLinks.length;
+  socialLinks.push({ label: label || '', url: url || '' });
+  const div = document.createElement('div');
+  div.id = 'social-link-' + idx;
+  div.style.cssText = 'display:flex;gap:4px;margin-bottom:4px;align-items:center;';
+  div.innerHTML = `
+    <input class="input" style="width:110px;" placeholder="VK, LinkedIn..." value="${(label || '').replace(/"/g,'&quot;')}" oninput="socialLinks[${idx}].label=this.value">
+    <input class="input" style="flex:1;" placeholder="https://..." value="${(url || '').replace(/"/g,'&quot;')}" oninput="socialLinks[${idx}].url=this.value">
+    <button type="button" class="btn btn-sm" style="background:transparent;color:#ccc;padding:2px 6px;" onclick="removeSocialLink(${idx})">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeSocialLink(idx) {
+  socialLinks.splice(idx, 1);
+  renderSocialLinks();
+}
+
+function renderSocialLinks() {
+  const container = document.getElementById('social-links-container');
+  container.innerHTML = '';
+  socialLinks.forEach((s, i) => addSocialLink(s.label, s.url));
+}
+
+// ─── Extra phones ──────────────────────────────────────
+let phoneNumbers = [];
+
+function addPhone(val) {
+  const container = document.getElementById('phones-container');
+  const idx = phoneNumbers.length;
+  phoneNumbers.push(val || '');
+  const div = document.createElement('div');
+  div.id = 'phone-' + idx;
+  div.style.cssText = 'display:flex;gap:4px;margin-bottom:4px;align-items:center;';
+  div.innerHTML = `
+    <input class="input" style="flex:1;" placeholder="+7..." value="${(val || '').replace(/"/g,'&quot;')}" oninput="phoneNumbers[${idx}]=this.value">
+    <button type="button" class="btn btn-sm" style="background:transparent;color:#ccc;padding:2px 6px;" onclick="removePhone(${idx})">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removePhone(idx) {
+  phoneNumbers.splice(idx, 1);
+  renderPhones();
+}
+
+function renderPhones() {
+  const container = document.getElementById('phones-container');
+  container.innerHTML = '';
+  phoneNumbers.forEach(v => addPhone(v));
+}
+
+function onCompanyChange() {
+  const name = document.getElementById('c-company').value.trim();
+  const matched = companiesList.find(c => c.name === name);
+  const row = document.getElementById('company-details-row');
+  const w = document.getElementById('c-company-website');
+  const a = document.getElementById('c-company-address');
+  if (matched) {
+    row.style.display = 'flex';
+    w.value = matched.website || '';
+    a.value = matched.address || '';
+  } else {
+    row.style.display = 'none';
+    w.value = '';
+    a.value = '';
+  }
+}
+
+function openCompanyVacancies() {
+  const company = document.getElementById('c-company').value.trim();
+  if (!company) return;
+  window.location.href = '/vacancies?company=' + encodeURIComponent(company);
+}
+
+function createVacancyFromContact() {
+  const company = document.getElementById('c-company').value.trim();
+  if (!company) {
+    alert('Сначала укажите компанию');
+    return;
+  }
+  showManualForm(company, function() {
+    // After creation, close contact modal and go to vacancies
+    closeModal();
+  });
+}
+</script>
+{% endblock %}

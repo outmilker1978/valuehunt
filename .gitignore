@@ -5,6 +5,7 @@ __pycache__/
 dist/
 build/
 *.egg
+*.spec
 .venv/
 venv/
 env/
@@ -13,6 +14,24 @@ env/
 data/*.db
 data/*.sqlite
 data/sessions/
+data/backups/
+data/*.backup*
+data/*.bak*
+*.db
+*.sqlite
+
+# Personal data
+vacancy_letters/
+user/
+tasks/
+*.xlsx
+*.docx
+*.pdf
+data/*.txt
+data/*.report*
+ValueHunt*.txt
+ValueHunt*.pdf
+config/ues_config.json
 
 # Config with secrets
 config/.env

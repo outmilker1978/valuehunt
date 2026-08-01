@@ -9,29 +9,52 @@
 </div>
 
 <script>
+const STATUS_LABELS = { new: 'Новые', applied: 'Отклик', invited: 'Приглашение', in_progress: 'В работе', offer: 'Оффер', rejected: 'Отказ' };
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadDetail();
+});
+
 async function loadDetail() {
   const root = document.getElementById('vacancy-detail-root');
   const v = await api('/api/vacancies/{{ vacancy_id }}');
   if (!v || !v.hh_id) { root.innerHTML = '<p style="color:#d32f2f;">Вакансия не найдена</p>'; return; }
 
-  const catColors = { S: '#155724', A: '#004085', B: '#856404', C: '#856404', REJECT: '#721c24' };
-  const catBgs = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#fff3cd', REJECT: '#f8d7da' };
+  const catColors = { S: '#28a745', A: '#007bff', B: '#ffc107', C: '#fd7e14', REJECT: '#dc3545' };
+  const catBgs = { S: '#d4edda', A: '#cce5ff', B: '#fff3cd', C: '#ffe5cc', REJECT: '#f8d7da' };
+  const catLabels = { S: 'Идеально', A: 'Отлично', B: 'Хорошо', C: 'Возможно', REJECT: 'Пропустить' };
+
+  const GATE_A_LABELS = {
+    remote: 'Удалёнка', remote_detail: 'Формат работы',
+    salary: 'Зарплата', salary_detail: 'Детали ЗП',
+    location: 'Локация',
+  };
 
   let gateHtml = '';
   if (v.gate_a_result) {
-    const ga = typeof v.gate_a_result === 'string' ? JSON.parse(v.gate_a_result) : v.gate_a_result;
+    const ga = typeof v.gate_a_result === 'string' ? safeParse(v.gate_a_result, null) : v.gate_a_result;
     if (ga.details) {
       gateHtml = Object.entries(ga.details).map(([k, val]) =>
-        `<span class="badge badge-${val === 'pass' ? 'A' : 'мимо'}">${k}: ${val}</span>`
-      ).join(' ') + (ga.reasons ? `<p style="color:#d32f2f;font-size:13px;margin-top:6px;">${ga.reasons.join('; ')}</p>` : '');
+        `<span class="badge badge-${val === 'pass' ? 'S' : 'REJECT'}">${GATE_A_LABELS[k] || k}: ${val === 'pass' ? '✓' : val === 'fail' ? '✗' : val}</span>`
+      ).join(' ') + (ga.reasons && ga.reasons.length ? `<p style="color:#d32f2f;font-size:13px;margin-top:6px;">${ga.reasons.join('; ')}</p>` : '');
     }
+  }
+  if (v.gate_b_result) {
+    const gb = typeof v.gate_b_result === 'string' ? safeParse(v.gate_b_result, null) : v.gate_b_result;
+    const gbOk = gb && gb.passed ? '<span class="badge badge-S">Архетипы: ' + (gb.archetypes || []).join(', ') + '</span>' : '<span class="badge badge-REJECT">✗ Gate B не пройден</span>';
+    gateHtml += (gateHtml ? ' ' : '') + gbOk;
   }
 
   let risksHtml = '';
   if (v.risks) {
-    const risks = typeof v.risks === 'string' ? JSON.parse(v.risks) : v.risks;
+    const risks = typeof v.risks === 'string' ? safeParse(v.risks, []) : v.risks;
     risksHtml = risks.map(r => `<p style="margin:4px 0;font-size:13px;">${r.level || '•'} ${r.text}</p>`).join('');
   }
+
+  const skills = safeParse(v.skills, []);
+  const tasks = safeParse(v.parsed_tasks, []);
+  const requirements = safeParse(v.parsed_requirements, []);
+  const keyWords = safeParse(v.key_words, []);
 
   root.innerHTML = `
     <div class="card">
@@ -42,12 +65,17 @@ async function loadDetail() {
             <a href="${v.url || '#'}" target="_blank">${v.company || '—'}</a>
             ${v.location ? '· ' + v.location : ''}
             ${v.work_format ? '· ' + v.work_format : ''}
+            ${v.published_at ? '· опубликована ' + v.published_at : ''}
           </p>
           ${v.salary_from ? `<p style="margin:4px 0 0;font-weight:600;">${v.salary_from.toLocaleString()}${v.salary_to ? ' — ' + v.salary_to.toLocaleString() : ''} ₽</p>` : '<p style="color:#999;">ЗП не указана</p>'}
+          <p style="margin:4px 0 0;">
+            <span class="badge badge-${v.status || 'new'}">${STATUS_LABELS[v.status] || v.status || 'Новые'}</span>
+            <span class="badge" style="background:${v.resume_archetype === '03' ? '#e8daef' : '#d6eaf8'};color:#2c3e50;font-size:11px;margin-left:4px;" id="detail-archetype-badge">Архетип: ${v.resume_archetype || 'не указан'}</span>
+          </p>
         </div>
         <div style="text-align:center;">
           <div style="font-size:40px;font-weight:700;color:${catColors[v.category] || '#333'};">${v.score || '?'}</div>
-          <span class="badge" style="background:${catBgs[v.category] || '#e2e3e5'};color:${catColors[v.category] || '#383d41'};font-size:16px;">${v.category || '—'}</span>
+          <span class="badge" style="background:${catBgs[v.category] || '#e2e3e5'};color:${catColors[v.category] || '#383d41'};font-size:16px;">${catLabels[v.category] || v.category || '—'}</span>
           ${v.override_applied ? '<div style="font-size:11px;color:#e94560;margin-top:4px;">Override</div>' : ''}
         </div>
       </div>
@@ -59,8 +87,18 @@ async function loadDetail() {
     </div>
 
     <div class="card" style="margin-top:16px;">
+      <h3>Контакты компании</h3>
+      <div id="company-contacts" style="font-size:13px;color:#999;">Загрузка...</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
       <h3>Риски</h3>
       ${risksHtml || '<p style="color:#999;">Нет данных</p>'}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Ключевые навыки</h3>
+      ${skills.length ? skills.map(s => `<span class="badge badge-A" style="margin:2px;">${s}</span>`).join('') : '<p style="color:#999;">Не указаны</p>'}
     </div>
 
     <div class="card" style="margin-top:16px;">
@@ -68,20 +106,27 @@ async function loadDetail() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
           <h4 style="font-size:13px;color:#666;">Задачи</h4>
-          ${(v.parsed_tasks ? (typeof v.parsed_tasks === 'string' ? JSON.parse(v.parsed_tasks) : v.parsed_tasks) : []).map(t => `<li style="font-size:13px;">${t}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
+          ${tasks.map(t => `<li style="font-size:13px;">${t}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
         </div>
         <div>
           <h4 style="font-size:13px;color:#666;">Требования</h4>
-          ${(v.parsed_requirements ? (typeof v.parsed_requirements === 'string' ? JSON.parse(v.parsed_requirements) : v.parsed_requirements) : []).map(r => `<li style="font-size:13px;">${r}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
+          ${requirements.map(r => `<li style="font-size:13px;">${r}</li>`).join('') || '<p style="color:#999;">Не извлечены</p>'}
         </div>
       </div>
-      ${v.key_words ? `
+      ${keyWords.length ? `
         <div style="margin-top:12px;">
           <h4 style="font-size:13px;color:#666;">Ключевые слова для письма</h4>
-          <p style="font-size:13px;">${(typeof v.key_words === 'string' ? JSON.parse(v.key_words) : v.key_words).join(', ')}</p>
+          <p style="font-size:13px;">${keyWords.join(', ')}</p>
         </div>
       ` : ''}
     </div>
+
+    ${v.hr_contacts ? `
+    <div class="card" style="margin-top:16px;">
+      <h3>Контакты HR</h3>
+      <div style="font-size:13px;white-space:pre-wrap;">${v.hr_contacts}</div>
+    </div>
+    ` : ''}
 
     <div class="card" style="margin-top:16px;">
       <h3>Описание</h3>
@@ -89,16 +134,72 @@ async function loadDetail() {
     </div>
 
     <div class="card" style="margin-top:16px;">
+      <h3>Мои заметки</h3>
+      <textarea id="notes-text" style="width:100%;min-height:80px;padding:8px;font-size:13px;border:1px solid #d0d0d0;border-radius:6px;" placeholder="Напишите заметку по этой вакансии...">${v.notes || ''}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <button class="btn btn-sm" onclick="saveNotes({{ vacancy_id }})">Сохранить заметку</button>
+        <span id="notes-status" style="font-size:13px;"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
       <h3>Действия</h3>
-      <div style="display:flex;gap:8px;">
-        <a href="${v.url || '#'}" target="_blank" class="btn btn-sm">Открыть на HH</a>
-        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'applied')">Откликнулся</button>
-        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'rejected')">Отказ</button>
-        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'archived')">В архив</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="${v.url || '#'}" target="_blank" class="btn btn-sm" title="Открыть вакансию на HH.ru">🌐 Открыть на HH</a>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'applied')" title="Откликнулся">Отклик</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'invited')" title="Получено приглашение">Приглашение</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'in_progress')" title="В работе">В работе</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'offer')" title="Оффер">Оффер</button>
+        <button class="btn btn-sm" onclick="updateStatus({{ vacancy_id }}, 'rejected')" title="Отказ">Отказ</button>
+        <button class="btn btn-sm" style="background:#c0392b;" onclick="showTrashModal({{ vacancy_id }})">Удалить</button>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;">
+        <span>Архетип:</span>
+        <select id="detail-archetype" class="input" style="width:auto;font-size:12px;padding:2px 6px;">
+          <option value="01" ${v.resume_archetype === '01' ? 'selected' : ''}>01 — Enterprise PM</option>
+          <option value="03" ${v.resume_archetype === '03' ? 'selected' : ''}>03 — Product PM-PO</option>
+        </select>
+        <button class="btn btn-sm" onclick="saveDetailArchetype({{ vacancy_id }})">Сохранить</button>
+        <span id="detail-archetype-msg" style="font-size:12px;color:#888;"></span>
       </div>
       <span id="detail-status" style="margin-left:8px;font-size:13px;"></span>
     </div>
   `;
+  // Load company contacts
+  if (v.company) {
+    api('/api/vacancies/{{ vacancy_id }}/contacts').then(contacts => {
+      const el = document.getElementById('company-contacts');
+      if (!el) return;
+      if (contacts.items && contacts.items.length) {
+        el.innerHTML = contacts.items.map(c =>
+          `<div style="padding:3px 0;display:flex;gap:6px;align-items:center;">
+            <strong>${c.name}</strong>
+            ${c.role ? '<span style="color:#888;">· ' + c.role + '</span>' : ''}
+            ${c.telegram ? '<span style="color:#0088cc;font-size:12px;">✈' + c.telegram + '</span>' : ''}
+            ${c.email ? '<span style="font-size:12px;">✉' + c.email + '</span>' : ''}
+            ${c.priority ? `<span class="badge badge-${c.priority}" style="font-size:10px;">${c.priority}</span>` : ''}
+          </div>`
+        ).join('');
+      } else {
+        el.innerHTML = '<span style="color:#999;">Нет контактов</span>';
+      }
+    }).catch(() => {
+      const el = document.getElementById('company-contacts');
+      if (el) el.innerHTML = '<span style="color:#999;">Ошибка загрузки</span>';
+    });
+  } else {
+    const el = document.getElementById('company-contacts');
+    if (el) el.innerHTML = '<span style="color:#999;">Компания не указана</span>';
+  }
+}
+
+async function saveNotes(id) {
+  const notes = document.getElementById('notes-text').value;
+  await api('/api/vacancies/' + id + '/notes', {
+    method: 'POST',
+    body: JSON.stringify({ notes }),
+  });
+  showStatus(document.getElementById('notes-status'), 'Заметка сохранена');
 }
 
 async function updateStatus(id, status) {
@@ -107,8 +208,77 @@ async function updateStatus(id, status) {
     body: JSON.stringify({ status }),
   });
   showStatus(document.getElementById('detail-status'), 'Статус обновлён');
+  loadDetail();
 }
 
-loadDetail();
+async function saveDetailArchetype(id) {
+  const archetype = document.getElementById('detail-archetype').value;
+  const msg = document.getElementById('detail-archetype-msg');
+  msg.textContent = 'Сохранение...';
+  const res = await api('/api/vacancies/' + id + '/archetype', { method: 'PUT', body: JSON.stringify({ archetype }) });
+  if (res.ok) {
+    msg.textContent = '✓';
+    msg.style.color = '#28a745';
+    // Update badge
+    const badge = document.getElementById('detail-archetype-badge');
+    if (badge) {
+      badge.textContent = 'Архетип: ' + archetype;
+      badge.style.background = archetype === '03' ? '#e8daef' : '#d6eaf8';
+    }
+  } else {
+    msg.textContent = 'Ошибка';
+    msg.style.color = '#d32f2f';
+  }
+  setTimeout(() => msg.textContent = '', 2000);
+}
+
+// ─── Trash ───────────────────────────────────────────────
+const TRASH_REASONS = [
+  'Зарплата ниже ожидаемой',
+  'Локация не подходит',
+  'Не мой профиль/домен',
+  'Дубль вакансии',
+  'Не согласен с условиями',
+  'Работодатель закрыл вакансию',
+  'Другое',
+];
+
+function showTrashModal(id) {
+  const reasonsHtml = TRASH_REASONS.map((r) => {
+    return `<label style="display:block;padding:6px;cursor:pointer;">
+      <input type="checkbox" name="trash-reason" value="${r}" style="margin-right:6px;"> ${r}
+    </label>`;
+  }).join('');
+  const customHtml = `<div style="margin-top:8px;"><input id="trash-other" style="width:100%;padding:6px;font-size:12px;border-radius:4px;border:1px solid #555;background:#2d2d3e;color:#fff;" placeholder="Другое (можно дописать)..." maxlength="200"></div>`;
+  const overlay = document.createElement('div');
+  overlay.className = 'trash-modal-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#1e1e2e;padding:24px;border-radius:12px;min-width:350px;color:#fff;">
+      <h3 style="margin:0 0 16px;color:#fff;">Причины удаления (можно выбрать несколько)</h3>
+      ${reasonsHtml}
+      ${customHtml}
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn btn-sm" style="background:#c0392b;" onclick="trashVacancy(${id})">Удалить</button>
+        <button class="btn btn-sm" onclick="this.closest('.trash-modal-overlay').remove()">Отмена</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function trashVacancy(id) {
+  const checked = document.querySelectorAll('input[name="trash-reason"]:checked');
+  const reasons = Array.from(checked).map(cb => cb.value);
+  const other = document.getElementById('trash-other');
+  if (other && other.value.trim()) reasons.push(other.value.trim());
+  if (reasons.length === 0) { alert('Выберите хотя бы одну причину'); return; }
+  await api('/api/vacancies/' + id + '/trash', {
+    method: 'POST',
+    body: JSON.stringify({ reasons }),
+  });
+  document.querySelectorAll('.trash-modal-overlay').forEach(el => el.remove());
+  showStatus(document.getElementById('detail-status'), 'Удалена');
+  setTimeout(() => window.location.href = '/vacancies', 1000);
+}
 </script>
 {% endblock %}

@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{% block title %}Отчёт{% endblock %}
+
+{% block content %}
+<style>
+@media print {
+  nav, .main > h1, .btn-date-range, input, label, .btn { display:none; }
+  #report-stats { break-inside:avoid; }
+  .card { break-inside:avoid; border:1px solid #ddd !important; page-break-inside:avoid; box-shadow:none !important; }
+  body { font-size:11pt; color:#000; background:#fff; }
+  a { color:#000 !important; text-decoration:none !important; }
+}
+</style>
+<h1>Отчёт</h1>
+
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+  <button class="btn btn-sm btn-date-range" data-days="7" onclick="setRange(7)" style="background:#e94560;color:#fff;">7 дней</button>
+  <button class="btn btn-sm btn-date-range" data-days="14" onclick="setRange(14)">14 дней</button>
+  <button class="btn btn-sm btn-date-range" data-days="30" onclick="setRange(30)">30 дней</button>
+  <span style="display:flex;align-items:center;gap:4px;">
+    <label>с</label>
+    <input id="report-from" type="date" class="input" style="width:140px;">
+    <label>по</label>
+    <input id="report-to" type="date" class="input" style="width:140px;">
+    <button class="btn btn-sm" onclick="loadReport()">Обновить</button>
+  </span>
+  <span style="margin-left:auto;display:flex;gap:4px;">
+    <button class="btn btn-sm" onclick="window.print()" style="background:transparent;color:#555;border:1px solid #bbb;">🖨 PDF</button>
+    <button class="btn btn-sm" onclick="copyReport()" id="copy-btn" style="background:transparent;color:#555;border:1px solid #bbb;">📋 Копировать текст</button>
+  </span>
+</div>
+
+<div id="report-stats" style="margin-bottom:20px;"></div>
+
+<div id="report-charts" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+<div id="report-extra"></div>
+<div id="report-details"></div>
+
+<script>
+const LABEL_MAP = { outreach:'Аутрич', applied:'Отклик', in_progress:'В работе', offer:'Оффер', rejection:'Отказ', archived:'В архив', closed:'Закрыта' };
+
+function setRange(days) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - days + 1);
+  document.getElementById('report-from').value = from.toISOString().slice(0,10);
+  document.getElementById('report-to').value = to.toISOString().slice(0,10);
+  document.querySelectorAll('.btn-date-range').forEach(b => b.style.background = b.style.color = '');
+  const btn = document.querySelector(`.btn-date-range[data-days="${days}"]`);
+  if (btn) { btn.style.background = '#e94560'; btn.style.color = '#fff'; }
+  loadReport();
+}
+
+function fmtDate(d) { return d ? d.slice(8,10) + '.' + d.slice(5,7) + '.' + d.slice(2,4) : ''; }
+
+async function loadReport() {
+  const from = document.getElementById('report-from').value;
+  const to = document.getElementById('report-to').value;
+  if (!from || !to) return;
+  const data = await api(`/api/report?from_date=${from}&to_date=${to}`);
+
+  // Stats cards with extended analytics
+  const totalVacs = data.new_vacancies.count;
+  const appCount = data.applications.count;
+  const trashCount = data.trash_breakdown.items.length;
+  const inviteCount = data.invitations.count;
+  const rejCount = data.rejections.count;
+  const convPct = totalVacs ? ((appCount / totalVacs) * 100).toFixed(1) : '—';
+  const trashPct = totalVacs ? ((trashCount / totalVacs) * 100).toFixed(1) : '—';
+
+  function statCard(c) {
+    return `<div style="background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:12px;text-align:center;">
+      <div style="font-size:28px;font-weight:700;color:${c.color};">${c.count}</div>
+      <div style="font-size:12px;color:#666;">${c.label}</div>
+      <div style="font-size:10px;color:#999;margin-top:2px;">${c.detail}</div>
+    </div>`;
+  }
+  const row1 = [
+    { label:'Новых вакансий', count:totalVacs, color:'#007bff', detail: `за период` },
+    { label:'Откликов', count:appCount, color:'#17a2b8', detail: `${convPct}% от новых` },
+    { label:'Приглашений активно', count:inviteCount, color:'#28a745', detail: `в работе` },
+    { label:'Отказов получено', count:rejCount, color:'#dc3545', detail: `за период` },
+    { label:'Удалено из поиска', count:trashCount, color:'#6c757d', detail: `${trashPct}% от новых` },
+  ];
+  const row2 = [
+    { label:'Новых контактов', count:data.new_contacts.count, color:'#e94560', detail: `за период` },
+    { label:'Действий коммуникации выполнено', count:data.completed.count, color:'#28a745', detail: `за период` },
+    { label:'Просроченные действия', count:data.overdue.count, color:'#856404', detail: `требуют внимания` },
+  ];
+  document.getElementById('report-stats').innerHTML =
+    `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;">${row1.map(statCard).join('')}</div>` +
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${row2.map(statCard).join('')}</div>`;
+
+  // Charts
+  const catColors = { S:'#28a745', A:'#007bff', B:'#ffc107', C:'#fd7e14', REJECT:'#dc3545' };
+  const catLabels = { S:'Идеально', A:'Отлично', B:'Хорошо', C:'Возможно', REJECT:'Пропустить' };
+  const statusLabels = { new:'Новые', applied:'Отклик', invited:'Приглашение', in_progress:'В работе', offer:'Оффер', rejected:'Отказ' };
+
+  let chartsHtml = '';
+
+  // Donut: by category
+  const cats = Object.entries(data.by_category || {});
+  if (cats.length) {
+    const total = cats.reduce((s, [,c]) => s + c, 0);
+    const r = 50, circ = 2 * Math.PI * r;
+    let offset = 0;
+    const segments = cats.map(([k, c]) => {
+      const segLen = (c / total) * circ;
+      const seg = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${catColors[k] || '#ccc'}" stroke-width="20"
+        stroke-dasharray="${segLen} ${circ - segLen}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;
+      offset += segLen;
+      return { key: k, count: c, color: catColors[k] || '#ccc', label: catLabels[k] || k, html: seg };
+    });
+    chartsHtml += `<div class="card" style="padding:12px;flex:1;min-width:280px;">
+      <h3 style="margin:0 0 8px;font-size:14px;">По категориям</h3>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <svg width="120" height="120" viewBox="0 0 120 120">${segments.map(s => s.html).join('')}</svg>
+        <div style="font-size:12px;">
+          ${segments.map(s => `<div style="display:flex;align-items:center;gap:4px;margin:2px 0;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${s.color};"></span>
+            <strong>${s.count}</strong> ${s.label}
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Bar chart: daily/weekly trend (adaptive by range length)
+  const trend = data.daily_trend || [];
+  const fromVal = document.getElementById('report-from').value;
+  const toVal = document.getElementById('report-to').value;
+  const rangeDays = fromVal && toVal ? (new Date(toVal) - new Date(fromVal)) / 86400000 : 7;
+  if (trend.length) {
+    // Aggregate by week if range > 30 days
+    let trendBars;
+    let barLabelFn;
+    if (rangeDays > 30) {
+      const weeks = {};
+      trend.forEach(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        const day = dt.getDay();
+        const mon = new Date(dt);
+        mon.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
+        const wk = mon.toISOString().slice(0,10);
+        weeks[wk] = (weeks[wk] || 0) + d.count;
+      });
+      trendBars = Object.entries(weeks).map(([w, c]) => ({ date: w, count: c }));
+      barLabelFn = (item) => { const d = new Date(item.date + 'T00:00:00'); return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2); };
+    } else {
+      trendBars = trend;
+      barLabelFn = (item) => fmtDate(item.date);
+    }
+    const maxVal = Math.max(...trendBars.map(d => d.count), 1);
+    const barW = Math.max(14, Math.min(40, 500 / trendBars.length));
+    const chartH = 220;
+    chartsHtml += `<div class="card" style="padding:16px;flex:2;min-width:280px;">
+      <h3 style="margin:0 0 12px;font-size:16px;">${rangeDays > 30 ? 'Динамика по неделям' : 'Динамика по дням'}</h3>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:${chartH}px;padding:0 2px;">
+        ${trendBars.map(item => {
+          const h = (item.count / maxVal) * (chartH - 48);
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:${chartH}px;justify-content:flex-end;">
+            <div style="font-size:15px;font-weight:700;color:#007bff;margin-bottom:4px;">${item.count}</div>
+            <div style="width:${barW}px;height:${h}px;background:#007bff;border-radius:3px 3px 0 0;min-height:${item.count ? 4 : 0}px;" title="${item.date}: ${item.count}"></div>
+            <span style="font-size:11px;color:#555;margin-top:4px;white-space:nowrap;">${barLabelFn(item)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('report-charts').innerHTML = chartsHtml;
+
+  // ── Funnel & Weekly trend & Trash-reasons donut (2-col grid) ──
+  const extraEl = document.getElementById('report-extra');
+  extraEl.innerHTML = '';
+
+  const blocks = [];
+  const funnelLabels = { new:'Новые', applied:'Отклик', invited:'Приглашение', in_progress:'В работе', offer:'Оффер' };
+  const funnelColors = { new:'#007bff', applied:'#17a2b8', invited:'#28a745', in_progress:'#ffc107', offer:'#28a745' };
+
+  // 1. Funnel
+  const funnel = data.funnel || {};
+  if (['new','applied','invited','in_progress','offer'].some(k => (funnel[k] || 0) > 0)) {
+    const maxVal = Math.max(...['new','applied','invited','in_progress','offer'].map(k => funnel[k] || 0), 1);
+    blocks.push(`<div class="card" style="padding:12px;">
+      <h3 style="margin:0 0 8px;font-size:14px;">Воронка</h3>
+      <div style="display:flex;gap:6px;align-items:flex-end;">
+        ${['new','applied','invited','in_progress','offer'].map(k => {
+          const cnt = funnel[k] || 0;
+          const h = Math.max(4, (cnt / maxVal) * 100);
+          return `<div style="flex:1;text-align:center;">
+            <div style="font-size:14px;font-weight:700;">${cnt}</div>
+            <div style="height:${h}px;background:${funnelColors[k]};border-radius:4px 4px 0 0;margin:4px auto;max-width:50px;"></div>
+            <div style="font-size:10px;color:#888;">${funnelLabels[k]}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`);
+  }
+
+  // 2. Weekly trend (retro — last 10 weeks, independent of date filter)
+  const weekly = data.weekly_trend || [];
+  if (weekly.length) {
+    const maxW = Math.max(...weekly.map(w => w.new), 1);
+    const chartH = 140;
+    blocks.push(`<div class="card" style="padding:10px;">
+      <h3 style="margin:0 0 6px;font-size:14px;">Недельная динамика (ретро, 10 недель)</h3>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:${chartH}px;">
+        ${weekly.map(w => {
+          const maxBar = chartH - 36;
+          const h = Math.max(3, (w.new / maxW) * maxBar * 0.6);
+          const delH = w.deleted ? Math.max(2, (w.deleted / maxW) * maxBar * 0.4) : 0;
+          const totalH = h + delH;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:${chartH}px;">
+            <div style="font-size:13px;font-weight:700;color:#007bff;margin-bottom:2px;">${w.new}</div>
+            <div style="width:100%;max-width:32px;display:flex;flex-direction:column-reverse;align-items:center;">
+              ${delH ? `<div style="width:100%;height:${delH}px;background:#dc3545;border-radius:2px 2px 0 0;" title="удалено: ${w.deleted}"></div>` : ''}
+              <div style="width:100%;height:${h}px;background:#007bff;border-radius:${delH ? '0' : '2px 2px 0 0'};min-height:${w.new ? 3 : 0}px;" title="новых: ${w.new}"></div>
+            </div>
+            <span style="font-size:10px;color:#888;margin-top:3px;white-space:nowrap;">${w.label}</span>
+            ${w.deleted ? `<span style="font-size:9px;color:#dc3545;">-${w.deleted}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:4px;"><span style="color:#007bff;">■</span> новые <span style="color:#dc3545;margin-left:8px;">■</span> удалено</div>
+    </div>`);
+  }
+
+  // 3. Trash reasons donut
+  const trashByReason = data.trash_breakdown?.by_reason || {};
+  const trashReasonEntries = Object.entries(trashByReason);
+  if (trashReasonEntries.length) {
+    const trashTotal = trashReasonEntries.reduce((s, [,c]) => s + c, 0);
+    const trashColors = ['#dc3545','#fd7e14','#ffc107','#6c757d','#17a2b8','#28a745','#e94560','#856404'];
+    const r2 = 36, circ2 = 2 * Math.PI * r2;
+    let off2 = 0;
+    const trashItemCount = data.trash_breakdown.items.length;
+    blocks.push(`<div class="card" style="padding:10px;">
+      <h3 style="margin:0 0 6px;font-size:14px;">Причины удаления (${trashItemCount})</h3>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <svg width="80" height="80" viewBox="0 0 90 90" style="flex-shrink:0;">${trashReasonEntries.map(([reason, cnt], idx) => {
+          const segLen = (cnt / trashTotal) * circ2;
+          const col = trashColors[idx % trashColors.length];
+          const seg = `<circle cx="45" cy="45" r="${r2}" fill="none" stroke="${col}" stroke-width="14"
+            stroke-dasharray="${segLen} ${circ2 - segLen}" stroke-dashoffset="${-off2}" transform="rotate(-90 45 45)"/>`;
+          off2 += segLen;
+          return seg;
+        }).join('')}</svg>
+        <div style="display:grid;grid-template-rows:repeat(6,auto);grid-auto-flow:column;gap:2px 14px;font-size:11px;">
+          ${trashReasonEntries.map(([reason, cnt], idx) => `<div style="display:flex;align-items:center;gap:4px;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${trashColors[idx % trashColors.length]};"></span>
+            <span><strong>${cnt}</strong>&nbsp;${reason.length > 28 ? reason.slice(0,26)+'…' : reason}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`);
+  }
+
+  if (blocks.length) {
+    extraEl.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">${blocks.join('')}</div>`;
+  }
+
+  // Details sections
+  let html = '';
+
+  // 1) Invitations — invited + in_progress + offer
+  if (data.invitations.items.length) {
+    const statusLabel = { invited:'Приглашение', in_progress:'В работе', offer:'Оффер' };
+    const statusColor = { invited:'#28a745', in_progress:'#ffc107', offer:'#17a2b8' };
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#28a745;">Приглашения (${data.invitations.count})</h3>
+      ${data.invitations.items.map(inv =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;">
+          <a href="/vacancies/${inv.id}" style="color:#28a745;text-decoration:none;">${inv.title}</a>
+          <span style="color:#888;"> — ${inv.company}</span>
+          <span style="font-size:10px;color:${statusColor[inv.status] || '#888'};margin-left:8px;">${statusLabel[inv.status] || inv.status}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  // 1.2) Active interviews — in_progress + offer only
+  if (data.active_interviews && data.active_interviews.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#ffc107;">Активные собесы (${data.active_interviews.count})</h3>
+      ${data.active_interviews.items.map(inv =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;">
+          <a href="/vacancies/${inv.id}" style="color:#333;text-decoration:none;">${inv.title}</a>
+          <span style="color:#888;"> — ${inv.company}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  // Active companies
+  const activeComp = data.active_companies || [];
+  if (activeComp.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#17a2b8;">Активные компании (${activeComp.length})</h3>
+      <div style="font-size:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;">
+        ${activeComp.map(c =>
+          `<div style="padding:6px 8px;border:1px solid #e0e0e0;border-radius:4px;">
+            <div style="font-weight:600;color:#333;">${c.name}</div>
+            <div style="color:#666;margin-top:2px;">
+          ${c.recent_actions ? `<span style="color:#17a2b8;">● ${c.recent_actions} за 30д</span> ` : ''}
+          ${c.pending_actions ? `<span style="color:#856404;">⏳ ${c.pending_actions} план</span>` : ''}
+            </div>
+            ${c.last_activity ? `<div style="font-size:10px;color:#999;margin-top:1px;">активность: ${fmtDate(c.last_activity)}</div>` : ''}
+          </div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (data.new_vacancies.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#007bff;">Новые вакансии (${data.new_vacancies.count})</h3>
+      ${data.new_vacancies.items.map(v =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;">
+          <span style="color:#888;width:70px;flex-shrink:0;">${fmtDate(v.date)}</span>
+          <a href="/vacancies/${v.id}" style="color:#007bff;text-decoration:none;">${v.title}</a>
+          <span style="color:#888;">${v.company}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  if (data.applications.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#17a2b8;">Отклики (${data.applications.count})</h3>
+      ${data.applications.items.map(a =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;">
+          <span style="color:#888;width:70px;flex-shrink:0;">${fmtDate(a.date)}</span>
+          <a href="/vacancies/${a.id}" style="color:#17a2b8;text-decoration:none;">${a.title}</a>
+          <span style="color:#888;">${a.company}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  if (data.rejections.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#dc3545;">Отказы (${data.rejections.count})</h3>
+      ${data.rejections.items.map(r =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;">
+          <span style="color:#888;width:70px;flex-shrink:0;">${fmtDate(r.date)}</span>
+          <a href="/vacancies/${r.id}" style="color:#dc3545;text-decoration:none;">${r.title}</a>
+          <span style="color:#888;">${r.company}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  // 2) Deleted — grouped by reason
+  if (data.trash_breakdown && data.trash_breakdown.items.length) {
+    // Group items by reason
+    const groups = {};
+    data.trash_breakdown.items.forEach(item => {
+      item.reasons.forEach(r => {
+        if (!groups[r]) groups[r] = [];
+        groups[r].push(item);
+      });
+    });
+    const sortedReasons = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#6c757d;">Удалено из поиска (${data.trash_breakdown.items.length})</h3>
+      ${sortedReasons.map(reason =>
+        `<div style="margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:600;color:#6c757d;padding:4px 0;">${reason} — ${groups[reason].length}</div>
+          ${groups[reason].slice(0,10).map(t =>
+            `<div style="padding:2px 0 2px 16px;font-size:12px;color:#888;">${fmtDate(t.date)}</div>`
+          ).join('')}
+          ${groups[reason].length > 10 ? `<div style="padding:2px 0 2px 16px;font-size:11px;color:#999;">... и ещё ${groups[reason].length - 10}</div>` : ''}
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  if (data.new_contacts.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#e94560;">Новые контакты (${data.new_contacts.count})</h3>
+      ${data.new_contacts.items.map(c =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;">
+          <span style="color:#888;">${fmtDate(c.date)}</span>
+          <strong>${c.name}</strong> <span style="color:#888;">${c.company}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  if (data.completed.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#28a745;">Выполненные действия (${data.completed.count})</h3>
+      ${data.completed.items.map(c =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;">
+          <span style="color:#888;">${fmtDate(c.date)}</span>
+          <strong>${c.company}</strong> — ${c.contact}: ${LABEL_MAP[c.type] || c.type}
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  if (data.overdue.items.length) {
+    html += `<div class="card" style="margin-bottom:12px;">
+      <h3 style="color:#856404;">Просроченные действия (${data.overdue.count})</h3>
+      ${data.overdue.items.map(o =>
+        `<div style="padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0;">
+          <span style="color:#856404;font-weight:600;">до ${fmtDate(o.date)}</span>
+          <strong>${o.company}</strong> — ${o.contact}: ${LABEL_MAP[o.type] || o.type}
+        </div>`
+      ).join('')}
+    </div>`;
+  }
+
+  document.getElementById('report-details').innerHTML = html || '<div class="card" style="text-align:center;color:#999;padding:40px;">Нет данных за выбранный период</div>';
+
+  // Store text for copy
+  window._reportText = data.text_summary;
+}
+
+function copyReport() {
+  const text = window._reportText || '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Скопировано!';
+    setTimeout(() => { btn.textContent = '📋 Копировать текст'; }, 2000);
+  }).catch(() => {});
+}
+
+// Init: load with default 7 days
+document.addEventListener('DOMContentLoaded', () => {
+  setRange(7);
+});
+</script>
+{% endblock %}

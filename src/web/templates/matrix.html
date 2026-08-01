@@ -2,11 +2,113 @@
 {% block title %}Матрица оценки{% endblock %}
 
 {% block content %}
-<h1>Матрица оценки вакансий</h1>
-<p style="color: #666; margin-bottom: 20px;">
-  Редактируй веса групп и критериев. Чем выше вес — тем важнее критерий.
-  Финальный Score = средневзвешенное по всем группам.
-</p>
+<h1>Матрица оценки UES</h1>
+
+<div class="sticky-filter" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+  <label><strong>Матрица для профиля:</strong></label>
+  <select id="matrix-profile-selector" class="input" style="width:auto;min-width:200px;" onchange="loadMatrix()">
+    <option value="">Базовая (по умолчанию)</option>
+  </select>
+  <button onclick="saveWeights(this)" class="btn" style="background:#1a1a2e;">
+    💾 Сохранить вес параметров
+  </button>
+  <span id="reeval-status" style="font-size:12px;color:#666;"></span>
+  <div style="width:100%;font-size:11px;color:#888;margin-top:2px;">
+    Веса сохраняются в matrix.yaml — пересчёт обновит оценки всех загруженных вакансий и будет применяться к новым при импорте. После изменения весов нажми «Сохранить», затем кнопку подтверждения для пересчёта.
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;background:#f8f9fa;border-left:4px solid #4361ee;">
+  <h3 style="margin-top:0;">Как работает оценка</h3>
+  <p style="font-size:13px;line-height:1.6;">
+    <strong>UES</strong> (Unified Evaluation Score) — алгоритмическая система скоринга вакансий.
+    Без LLM, только ключевые слова и правила.
+  </p>
+  <ol style="font-size:13px;line-height:1.8;margin:8px 0;">
+    <li><strong>БЛОКИ</strong> — красные флаги (гемблинг, не-PM-роль, геймдев). Если сработал → <strong>REJECT</strong>, score=0, без дальнейшего анализа.</li>
+    <li><strong>GATE A</strong> — жёсткие проходные фильтры: удалёнка / гибрид, зарплата ≥200k, локация Мск/СПб. Если хоть один не пройден → REJECT (с частичным баллом, чтобы видеть насколько близко).</li>
+    <li><strong>GATE B</strong> — проверка архетипа резюме (01 Enterprise PM / 03 Hybrid PM-PO). Если ни один не совпал → REJECT.</li>
+    <li><strong>Override</strong> — если Gate A не пройден, но Gate B пройден, Company≥6.5 и Fit (role+tech+culture)≥6.0 → Gate A принудительно пропускается. Вакансия оценивается полностью, рекомендация apply_terms.</li>
+    <li><strong>Скоринг</strong> (если GATE пройдены) — 7 групп критериев. Каждый критерий имеет вес внутри своей группы и набор ключевых слов из matrix.yaml. Если у критерия нет ключевых слов — оценка = zero_keyword_default из конфига (5.7). Если есть — количество совпадений в описании маппится в балл по match_curve: 0→5.0, 1→8.0, 2+→10.0. Итоговый балл группы = взвешенное среднее критериев (0–10). Итоговый балл вакансии = взвешенное среднее групп.</li>
+    <li><strong>Автообновление</strong> — изменения весов и замена критериев сохраняются сразу в matrix.yaml и применяются к следующему скорингу без перезапуска сервера.</li>
+  </ol>
+  <p style="font-size:13px;color:#666;">
+    Итоговые категории: <strong>S</strong> (8.0+) Идеально · <strong>A</strong> (7.0+) Отлично · <strong>B</strong> (6.0+) Хорошо · <strong>C</strong> (5.0+) Возможно · <strong>REJECT</strong> (&lt;5.0 или не пройдены GATE/БЛОКИ)
+  </p>
+</div>
+
+<div class="card" style="margin-bottom:16px;background:#fff3cd;border-left:4px solid #856404;">
+  <h3 style="margin-top:0;">Замена критерия</h3>
+  <p style="font-size:13px;">
+    У каждого критерия есть выпадающий список альтернатив. Выбери — и он заменит текущий критерий.
+    Вес останется прежним. Это позволяет перенастраивать матрицу без потери структуры.
+    <br><em>Пример: вместо «Удалёнка 100%» можно поставить «Гибрид» или «Офис в доступности» — вес останется 10.</em>
+  </p>
+</div>
 
 <div id="matrix-root"></div>
+
+<script>
+let pendingChanges = false;
+
+// Replace loadMatrix to track changes
+const origLoadMatrix = window.loadMatrix;
+window.loadMatrix = function() {
+  pendingChanges = false;
+  return origLoadMatrix ? origLoadMatrix() : null;
+};
+
+async function saveWeights(btn) {
+  const status = document.getElementById('reeval-status');
+  if (!btn) btn = event?.target;
+  if (!btn) { status.textContent = '❌ Ошибка: кнопка не найдена'; return; }
+  status.textContent = 'Сохраняю...';
+  btn.disabled = true;
+  try {
+    const groups = [];
+    document.querySelectorAll('.matrix-group').forEach(el => {
+      const gid = el.dataset.groupId;
+      const gw = el.querySelector('.group-weight-input')?.value;
+      const criteria = [];
+      el.querySelectorAll('.criterion-row').forEach(row => {
+        const cid = row.dataset.criterionId;
+        const cw = row.querySelector('.criterion-weight-input')?.value;
+        if (cid && cw !== undefined) criteria.push({ id: cid, weight: cw ? parseFloat(cw) : null });
+      });
+      if (gid) groups.push({ id: gid, weight: gw !== undefined ? (gw ? parseFloat(gw) : null) : null, criteria });
+    });
+    const resp = await fetch('/api/matrix/save-ui-weights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groups })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      pendingChanges = false;
+      status.textContent = '✅ Веса сохранены. Пересчитать оценки?';
+      if (confirm('Пересчитать оценки всех вакансий по новым весам?')) {
+        status.textContent = 'Пересчитываю...';
+        const r2 = await fetch('/api/matrix/reevaluate', { method: 'POST' });
+        if (!r2.ok) {
+          const errText = await r2.text();
+          status.textContent = `❌ Ошибка пересчёта (${r2.status}): ${errText.slice(0, 100)}`;
+          btn.disabled = false; return;
+        }
+        const d2 = await r2.json();
+        if (d2.ok) {
+          status.textContent = `✅ Веса сохранены, оценки пересчитаны (${d2.updated} вакансий)`;
+        } else {
+          status.textContent = `❌ Веса сохранены, но ошибка пересчёта: ${d2.error || 'неизвестная'}`;
+        }
+      }
+    } else {
+      status.textContent = `❌ Ошибка: ${data.error || 'неизвестная'}`;
+    }
+  } catch(e) {
+    const msg = e?.message || e?.toString() || 'неизвестная ошибка';
+    status.textContent = `❌ ${msg}`;
+  }
+  btn.disabled = false;
+}
+</script>
 {% endblock %}

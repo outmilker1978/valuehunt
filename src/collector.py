@@ -36,10 +36,28 @@ def analyze_vacancy_llm(vacancy: dict, llm: dict | None = None) -> dict:
 def _analyze_vacancy_keyword(vacancy: dict) -> dict:
     text = _build_text(vacancy).lower()
     tasks = _extract_section(text, ["задачи", "чем предстоит заниматься", "обязанности",
-                                      "что нужно делать", "key responsibilities"])
+                                      "что нужно делать", "key responsibilities",
+                                      "вам предстоит", "задачи, с которыми предстоит"])
     requirements = _extract_section(text, ["требования", "qualifications", "must have",
-                                            "что мы ждём", "необходимые навыки"])
+                                            "что мы ждём", "что мы ждем",
+                                            "мы ждём, что вы", "мы ждем, что вы",
+                                            "мы ждём от кандидата", "мы ждем от кандидата",
+                                            "необходимые навыки",
+                                            "мы ищем", "кого мы ищем", "будет плюсом",
+                                            "наши ожидания", "что мы ожидаем",
+                                            "вы нам подходите, если",
+                                            "какие знания и навыки",
+                                            "идеальный кандидат",
+                                            "что для нас важно", "что важно для нас",
+                                            "для нас важн", "что ждём от кандидата",
+                                            "что ждем от кандидата",
+                                            "что для этого необходимо",
+                                            "что ждём от тебя", "что ждем от тебя"])
     key_words = _extract_keywords(text, _KEYWORD_POOL)
+    section_text = " ".join(tasks + requirements)
+    if section_text:
+        extra = _extract_keywords(section_text, _KEYWORD_POOL)
+        key_words.extend(kw for kw in extra if kw not in key_words)
     return {
         "parsed_tasks": tasks[:5],
         "parsed_requirements": requirements[:5],
@@ -278,7 +296,7 @@ def _build_text(vacancy: dict) -> str:
         parts.extend(skills)
     elif isinstance(skills, str):
         parts.append(skills)
-    return " ".join(parts)
+    return "\n".join(parts)
 
 
 _KEYWORD_POOL = [
@@ -295,18 +313,52 @@ _KEYWORD_POOL = [
 ]
 
 
+_SECTION_STOP_WORDS = [
+    "обязанности", "задачи", "требования", "мы ищем", "кого мы ищем",
+    "что мы ждём", "что мы ждем",
+    "мы ждём, что вы", "мы ждем, что вы",
+    "наши ожидания", "будет плюсом", "ключевые навыки",
+    "мы предлагаем", "что мы предлагаем", "условия", "преимущества",
+    "бенефиты", "чем предстоит заниматься", "о вас", "о нас",
+]
+
+
 def _extract_section(text: str, headers: list[str]) -> list[str]:
-    lines = text.split("\n")
     result = []
-    capturing = False
-    for line in lines:
-        stripped = line.strip().lower()
-        if any(h in stripped for h in headers):
-            capturing = True
-            continue
-        if capturing:
-            if stripped and len(stripped) > 10:
-                result.append(stripped[:200])
+    lines = text.split("\n")
+    if len(lines) > 1:
+        capturing = False
+        for line in lines:
+            stripped = line.strip().lower()
+            # Start capture on matching header
+            if any(h in stripped for h in headers):
+                capturing = True
+                continue
+            if capturing:
+                if not stripped:
+                    continue
+                # Stop on next section header (short line with a section word)
+                if any(w in stripped for w in _SECTION_STOP_WORDS) and len(stripped) < 60 and (stripped.endswith(":") or stripped.endswith(".") or len(stripped) < 40):
+                    capturing = False
+                    continue
+                if len(stripped) > 10:
+                    result.append(stripped[:200])
+                if len(result) >= 5:
+                    break
+    # Fallback: extract from continuous text after header match
+    if not result:
+        low = text.lower()
+        for h in headers:
+            idx = low.find(h)
+            if idx >= 0:
+                chunk = text[idx + len(h):idx + len(h) + 500]
+                import re as _re
+                for sentence in _re.split(r'(?<=[.!?])\s+', chunk):
+                    sentence = sentence.strip()
+                    if sentence and len(sentence) > 10:
+                        result.append(sentence[:200])
+                    if len(result) >= 5:
+                        break
             if len(result) >= 5:
                 break
     return result
