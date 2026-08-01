@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS interactions (
     outcome TEXT CHECK(outcome IN ('pending','working','on_hold','positive','negative')),
     next_action_date TEXT,
     next_action_time TEXT,
+    completed_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -231,6 +232,7 @@ COMPLEX_MIGRATIONS = [
         outcome TEXT CHECK(outcome IN ('pending','working','on_hold','positive','negative')),
         next_action_date TEXT,
         next_action_time TEXT,
+        completed_at TEXT,
         created_at TEXT DEFAULT (datetime('now'))
     )""",
 ]
@@ -271,9 +273,11 @@ def init_db():
                 outcome TEXT CHECK(outcome IN ('pending','working','on_hold','positive','negative')),
                 next_action_date TEXT,
                 next_action_time TEXT,
+                completed_at TEXT,
                 created_at TEXT DEFAULT (datetime('now'))
             );
-            INSERT INTO interactions_v2 SELECT id,contact_id,vacancy_id,type,direction,summary,outcome,next_action_date,next_action_time,created_at FROM interactions;
+            INSERT INTO interactions_v2 (id,contact_id,vacancy_id,type,direction,summary,outcome,next_action_date,next_action_time,completed_at,created_at)
+                SELECT id,contact_id,vacancy_id,type,direction,summary,outcome,next_action_date,next_action_time,completed_at,created_at FROM interactions;
             DROP TABLE interactions;
             ALTER TABLE interactions_v2 RENAME TO interactions;
             CREATE INDEX IF NOT EXISTS idx_interactions_contact ON interactions(contact_id);
