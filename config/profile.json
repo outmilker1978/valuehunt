@@ -1,9 +1,9 @@
 {
-  "name": "Брель Денис Анатольевич",
-  "location": "Санкт-Петербург",
+  "name": "Имя Фамилия",
+  "location": "Город",
   "work_format": "REMOTE",
   "titles": [
-    "IT Product & Project Manager (Hybrid PM-PO)"
+    "IT Project Manager"
   ],
   "work_formats": [
     "REMOTE",
@@ -13,52 +13,25 @@
     "FULL"
   ],
   "search_filters": {
-    "text": "\"Руководитель портфеля\" OR \"Head of Delivery\" OR \"Delivery Manager\" OR \"IT Portfolio Manager\" OR \"PMO\" OR \"Project Management Office\" OR \"Enterprise Project Manager\" OR \"Senior Project Manager\" OR \"Senior IT Project Manager\" OR \"Руководитель направления разработки\" OR \"IT Director\" OR \"Head of Project Management\" OR \"Program Manager\" OR \"Delivery Lead\" OR \"Руководитель проекта\"",
+    "text": "Project Manager OR Руководитель проектов",
     "search_field": "name,description",
     "order_by": "publication_time",
     "per_page": "100",
     "search_period": "1",
-    "salary": "250000",
+    "salary": "",
     "experience": ["between3And6", "moreThan6"],
-    "professional_roles": [73, 107],
+    "professional_roles": [],
     "work_format": ["REMOTE", "HYBRID"],
     "regions": ["Россия"],
     "employment_form": "FULL",
     "ored_clusters": true
   },
   "keywords": [
-    "Управление продуктом",
+    "Project Management",
     "Agile (Scrum, Kanban)",
-    "Управление бэклогом",
     "Roadmap / Приоритизация",
-    "Jira / Confluence",
-    "Продуктовые метрики (NPS, eNPS)",
-    "KPI / OKR / SLA",
-    "User Story / UI/UX",
-    "CI/CD",
-    "Docker / Kubernetes",
-    "SQL / PostgreSQL",
-    "BPMN / UML",
-    "Управление рисками",
     "Stakeholder Management",
-    "AI-инструменты (LLM)",
-    "Delivery management",
-    "YouTrack",
-    "Miro",
-    "MS Visio",
-    "Draw.io",
-    "Power BI",
-    "MS Project",
-    "A/B тесты",
-    "Product Discovery",
-    "RICE",
-    "NPS",
-    "eNPS",
-    "Time-to-Market",
-    "AI-инструменты, LLM"
+    "Delivery management"
   ],
-  "professional_roles": [
-    73,
-    107
-  ]
+  "professional_roles": []
 }

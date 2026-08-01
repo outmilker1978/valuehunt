@@ -20,7 +20,7 @@ ValueHunt — система поиска работы с умным скори�
 ### Вариант 2 — Из исходников (Python)
 
 ```powershell
-git clone https://github.com/outmilker/ValueHunt
+git clone https://github.com/outmilker1978/ValueHunt
 cd ValueHunt
 python -m venv .venv
 .venv\Scripts\activate

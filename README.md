@@ -3,14 +3,14 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v1.14.0-orange)](https://github.com/outmilker/ValueHunt/releases)
+[![Release](https://img.shields.io/badge/release-v1.14.0-orange)](https://github.com/outmilker1978/ValueHunt/releases)
 
 **ValueHunt** — локальный open-source инструмент, который автоматизирует поиск работы:
 собирает вакансии с HeadHunter, оценивает по твоей личной матрице ценностей и помогает управлять воронкой откликов.
 
 ## Быстрый старт
 
-1. [Скачай последний релиз](https://github.com/outmilker/ValueHunt/releases) (`ValueHunt.zip`)
+1. [Скачай последний релиз](https://github.com/outmilker1978/ValueHunt/releases) (`ValueHunt.zip`)
 2. Распакуй в любую папку
 3. Запусти `ValueHunt.exe`
 4. Открой [http://127.0.0.1:8100](http://127.0.0.1:8100)
