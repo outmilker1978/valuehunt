@@ -1,9 +1,11 @@
 name: Daily Vacancy Scanner
 
 on:
-  schedule:
-    - cron: '0 */4 * * *'
   workflow_dispatch:
+  # Cron отключён — сканер работает локально через exe.
+  # Раскомментировать для ручного запуска из GitHub UI:
+  # schedule:
+  #   - cron: '0 */4 * * *'
 
 jobs:
   scan:
